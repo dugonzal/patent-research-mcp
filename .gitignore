@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (keep structure, ignore generated)
+data/raw/*
+!data/raw/.gitkeep
+data/sections/*
+!data/sections/.gitkeep
+data/cards/*
+!data/cards/.gitkeep
+data/claims/*
+!data/claims/.gitkeep
+data/patterns/*
+!data/patterns/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/graph/*
+!data/graph/.gitkeep
+
+# Environment
+.env
+.env.local
