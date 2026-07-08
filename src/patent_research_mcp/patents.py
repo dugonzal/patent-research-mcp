@@ -67,8 +67,10 @@ async def fetch_patent(
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page(user_agent=USER_AGENT)
-            await page.goto(url, wait_until="networkidle", timeout=30000)
+            page = await browser.new_page(user_agent=USER_AGENT, viewport={"width": 1280, "height": 800})
+            # Block images, fonts, and media for faster patent page loading
+            await page.route("**/*.{png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,mp4,webm}", lambda route: route.abort())
+            await page.goto(url, wait_until="load", timeout=30000)
             html = await page.content()
             await browser.close()
     except Exception as e:
@@ -79,42 +81,43 @@ async def fetch_patent(
             title=None,
             status=f"error: {e}",
         )
-        save_raw_html(pub_num, html)
 
-        # Extract text content from HTML
-        sel = Selector(text=html)
-        text_parts: list[str] = []
+    save_raw_html(pub_num, html)
 
-        # Remove scripts and styles
-        for tag in sel.css("script, style, nav, footer, header"):
-            tag.drop()
+    # Extract text content from HTML
+    sel = Selector(text=html)
+    text_parts: list[str] = []
 
-        # Get all visible text
-        body = sel.css("body")
-        if body:
-            text_parts.append(body.xpath("normalize-space(//body//text())").get(""))
+    # Remove scripts and styles
+    for tag in sel.css("script, style, nav, footer, header"):
+        tag.drop()
 
-        # Also extract sections more carefully
-        for section_type in ["abstract", "claims", "description", "background"]:
-            section_text = _extract_section_text(sel, section_type)
-            if section_text:
-                text_parts.append(f"\n\n=== {section_type.upper()} ===\n\n{section_text}")
+    # Get all visible text
+    body = sel.css("body")
+    if body:
+        text_parts.append(body.xpath("normalize-space(//body//text())").get(""))
 
-        full_text = "\n\n".join(p for p in text_parts if p.strip())
-        save_raw_text(pub_num, full_text)
+    # Also extract sections more carefully
+    for section_type in ["abstract", "claims", "description", "background"]:
+        section_text = _extract_section_text(sel, section_type)
+        if section_text:
+            text_parts.append(f"\n\n=== {section_type.upper()} ===\n\n{section_text}")
 
-        # Download PDF if requested
-        pdf_result_path = None
-        if pdf:
-            pdf_result_path = await _fetch_pdf(pub_num)
+    full_text = "\n\n".join(p for p in text_parts if p.strip())
+    save_raw_text(pub_num, full_text)
 
-        title = _extract_title(sel)
-        return FetchResult(
-            publication_number=pub_num,
-            html_path=_save_path(pub_num, "html"),
-            text_path=_save_path(pub_num, "txt"),
-            title=title,
-            status="fetched",
+    # Download PDF if requested
+    pdf_result_path = None
+    if pdf:
+        pdf_result_path = await _fetch_pdf(pub_num)
+
+    title = _extract_title(sel)
+    return FetchResult(
+        publication_number=pub_num,
+        html_path=_save_path(pub_num, "html"),
+        text_path=_save_path(pub_num, "txt"),
+        title=title,
+        status="fetched",
             pdf_path=pdf_result_path,
         )
 
@@ -177,7 +180,7 @@ async def get_sections(publication_number: str) -> PatentSections:
     if not inventors:
         inv_text = _extract_by_regex(sel, r"Inventors?:\s*(.+?)(?:\\n|$)")
         if inv_text:
-            inventors = [s.strip() for s in inv_text.split(";") if s.strip()]
+            inventors = [i.strip() for i in inv_text.split(";") if i.strip()]
 
     # Dates
     pub_date = ""
@@ -198,7 +201,7 @@ async def get_sections(publication_number: str) -> PatentSections:
         description=desc_text[:10000] if desc_text else "",
         claims=claims[:10000] if claims else "",
         assignee=assignee or None,
-        inventors=inventors or None,
+        inventors=inventors or [],
         publication_date=pub_date or None,
         filing_date=filing_date or None,
         status="extracted",
