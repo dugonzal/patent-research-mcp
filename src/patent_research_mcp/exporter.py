@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from .schemas import ModuleProposal
 from .store import (
     list_patterns,
@@ -9,15 +11,16 @@ from .store import (
     load_claims_firewall,
     load_sections,
     save_export,
+    _home,
 )
 
 
 async def generate_research_summary_markdown() -> str:
     """Generate a comprehensive Markdown summary of all research."""
     lines: list[str] = [
-        "# enterprise architecture — Research Summary",
+        "# Patent Research — Summary",
         "",
-        f"*Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}*",
+        f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}*",
         "",
         "---",
         "",
@@ -26,11 +29,7 @@ async def generate_research_summary_markdown() -> str:
     ]
 
     # Discover processed patents from stored files
-    from .store import _home
-
     raw_dir = _home() / "raw"
-    _home() / "sections"
-    _home() / "cards"
 
     # List all .txt files in raw
     raw_files = sorted(raw_dir.glob("*.txt")) if raw_dir.exists() else []
@@ -40,8 +39,8 @@ async def generate_research_summary_markdown() -> str:
         card = load_architecture_card(pub_num)
         firewall = load_claims_firewall(pub_num)
 
-        title = sections.title if sections else "" if sections else ""
-        lines.append(f"### {pub_num}: {title or '(title unknown)'}")
+        title = sections.title if sections and sections.title else "(title unknown)"
+        lines.append(f"### {pub_num}: {title}")
         lines.append("")
         if card:
             lines.append(f"- **Domain:** {card.domain}")
@@ -85,16 +84,18 @@ async def generate_research_summary_markdown() -> str:
         "## Safe Abstractions (ClaimsFirewall Summary)",
         "",
     ])
+    abstractions_found = False
     for rf in raw_files:
         pub_num = rf.stem
         firewall = load_claims_firewall(pub_num)
         if firewall and firewall.safe_abstractions:
+            abstractions_found = True
             lines.append(f"### {pub_num}")
             for sa in firewall.safe_abstractions:
                 lines.append(f"- {sa}")
             lines.append("")
 
-    if not any(load_claims_firewall(rf.stem) for rf in raw_files if rf.exists()):
+    if not abstractions_found:
         lines.append("*No ClaimsFirewalls created yet.*")
         lines.append("")
 
@@ -102,7 +103,7 @@ async def generate_research_summary_markdown() -> str:
     lines.extend([
         "---",
         "",
-        "## Suggested Suggested Modules",
+        "## Suggested Modules",
         "",
     ])
     all_modules: set[str] = set()
@@ -130,7 +131,7 @@ async def generate_research_summary_markdown() -> str:
 
 
 async def generate_module_proposal(module_name: str) -> str:
-    """Generate a module proposal template for a Nexo module."""
+    """Generate a module proposal template for architecture planning."""
     patterns = list_patterns()
     relevant_patterns = [p for p in patterns if p.suggested_module == module_name]
 
@@ -152,8 +153,8 @@ async def generate_module_proposal(module_name: str) -> str:
     lines = [
         f"# Module: {module_name}",
         "",
-        "> Proposed for enterprise architecture",
-        f"> *Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}*",
+        "> Proposed for system architecture",
+        f"> *Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}*",
         "",
         "---",
         "",
