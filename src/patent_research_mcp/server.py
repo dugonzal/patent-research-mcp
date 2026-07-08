@@ -17,7 +17,9 @@ CLI:
 from __future__ import annotations
 
 import json
+import os
 import sys
+from pathlib import Path
 
 import typer
 from mcp.server.fastmcp import FastMCP
@@ -31,12 +33,16 @@ from .schemas import (
     ClaimsFirewall,
     CompareResult,
     PatternCard,
+    SeedPatent,
 )
-import os
-from pathlib import Path
-
 from .seed import get_seed_patents as _get_core_seeds
-from .schemas import SeedPatent
+from .store import (
+    list_patterns,
+    save_architecture_card,
+    save_claims_firewall,
+    save_pattern,
+    save_sections,
+)
 
 
 def get_seed_patents():
@@ -46,19 +52,11 @@ def get_seed_patents():
         pf = Path(plugin_path) / "patents.json"
         if pf.exists():
             try:
-                import json
                 data = json.loads(pf.read_text())
                 return [SeedPatent(**s) for s in data]
             except Exception as e:
                 print(f"Warning: plugin seeds failed: {e}")
     return _get_core_seeds()
-from .store import (
-    list_patterns,
-    save_architecture_card,
-    save_claims_firewall,
-    save_pattern,
-    save_sections,
-)
 
 # ── MCP Server ────────────────────────────────────────────────────────
 
