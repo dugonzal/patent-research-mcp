@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import re
 
-import httpx
 from parsel import Selector
+from playwright.async_api import async_playwright
 
 from .schemas import FetchResult, PatentSections
 from .store import _home, load_raw_html, load_raw_text, save_raw_html, save_raw_text
@@ -64,22 +64,21 @@ async def fetch_patent(
         )
         return result
 
-    async with httpx.AsyncClient(
-        timeout=30.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-    ) as client:
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-        except httpx.HTTPError as e:
-            return FetchResult(
-                publication_number=pub_num,
-                html_path="",
-                text_path="",
-                title=None,
-                status=f"error: HTTP {e}",
-            )
-
-        html = response.text
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page(user_agent=USER_AGENT)
+            await page.goto(url, wait_until="networkidle", timeout=30000)
+            html = await page.content()
+            await browser.close()
+    except Exception as e:
+        return FetchResult(
+            publication_number=pub_num,
+            html_path="",
+            text_path="",
+            title=None,
+            status=f"error: {e}",
+        )
         save_raw_html(pub_num, html)
 
         # Extract text content from HTML
@@ -336,28 +335,32 @@ async def _fetch_pdf(pub_num: str) -> str | None:
 
     for source_url in sources:
         try:
-            async with httpx.AsyncClient(
-                timeout=10.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-            ) as client:
-                r = await client.get(source_url)
-                if r.status_code == 200 and (
-                    r.headers.get("content-type", "").startswith("application/pdf")
-                    or source_url.endswith("ogf=true")
-                ):
-                    pdf_path.write_bytes(r.content)
-                    if pdf_path.stat().st_size > 1000:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                resp = await page.goto(source_url, timeout=10000)
+                if resp and resp.status == 200:
+                    body = await resp.body()
+                    if len(body) > 1000:
+                        pdf_path.write_bytes(body)
+                        await browser.close()
                         return str(pdf_path)
+                await browser.close()
         except Exception:
             continue
 
     # Try USPTO as last resort
     try:
         uspto_url = f"https://pdfpiw.uspto.gov/{pub_num}.pdf"
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            r = await client.get(uspto_url)
-            if r.status_code == 200 and len(r.content) > 1000:
-                pdf_path.write_bytes(r.content)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            resp = await page.goto(uspto_url, timeout=10000)
+            if resp and resp.status == 200 and len(await resp.body()) > 1000:
+                pdf_path.write_bytes(await resp.body())
+                await browser.close()
                 return str(pdf_path)
+            await browser.close()
     except Exception:
         pass
 
