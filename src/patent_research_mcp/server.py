@@ -62,7 +62,21 @@ def get_seed_patents():
 
 mcp = FastMCP(
     "patent-research-mcp",
-    instructions="Patent research and architecture pattern extraction for enterprise architecture research",
+    instructions="""Patent research and architecture analysis server.
+
+Tools for the complete patent research pipeline:
+  fetch → extract → analyze → assess → synthesize → export
+
+Workflow:
+  1. patent_seed_list — browse available seed patents
+  2. patent_fetch — download patent from Google Patents
+  3. patent_get_sections — extract structured sections
+  4. architecture_card_save — save architecture analysis
+  5. claims_firewall_save — save claims risk assessment
+  6. pattern_save — save reusable pattern
+  7. research_export_markdown — generate summary
+
+Designed for system architects and patent researchers.""",
 )
 
 console = Console()
@@ -334,7 +348,7 @@ async def suggested_module_proposal(module_name: str) -> str:
 
 cli_app = typer.Typer(
     name="patent-research",
-    help="Patent research and architecture analysis for enterprise architecture research",
+    help="Patent research and architecture analysis from the command line.",
 )
 
 

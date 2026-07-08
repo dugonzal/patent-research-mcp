@@ -3,7 +3,7 @@ name = "patent-research-mcp"
 version = "0.1.0"
 description = "MCP server for patent research and enterprise architecture pattern extraction"
 requires-python = ">=3.11"
-authors = [{ name = "the target system" }]
+authors = [{ name = "Patent Research MCP Contributors" }]
 
 dependencies = [
     "patent-research-mcp @ file://localhost/home/ciclo/Proyectos/patent-research-mcp",
