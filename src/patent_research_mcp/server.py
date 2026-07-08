@@ -27,7 +27,8 @@ from rich.console import Console
 from rich.table import Table
 
 from .exporter import generate_module_proposal, generate_research_summary_markdown
-from .patents import get_sections as extract_sections, fetch_patent
+from .patents import fetch_patent
+from .patents import get_sections as extract_sections
 from .schemas import (
     ArchitectureCard,
     ClaimsFirewall,

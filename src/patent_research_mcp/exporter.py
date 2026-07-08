@@ -6,12 +6,12 @@ from datetime import datetime
 
 from .schemas import ModuleProposal
 from .store import (
+    _home,
     list_patterns,
     load_architecture_card,
     load_claims_firewall,
     load_sections,
     save_export,
-    _home,
 )
 
 
@@ -45,7 +45,8 @@ async def generate_research_summary_markdown() -> str:
         if card:
             lines.append(f"- **Domain:** {card.domain}")
             lines.append(f"- **Assignee:** {card.assignee or 'Unknown'}")
-            lines.append(f"- **Suggested Modules:** {', '.join(card.suggested_modules) if card.suggested_modules else '—'}")
+            modules_str = ", ".join(card.suggested_modules) if card.suggested_modules else "—"
+            lines.append(f"- **Suggested Modules:** {modules_str}")
         if firewall:
             levels = {"low": "🟢", "medium": "🟡", "high": "🔴"}
             risk_icon = levels.get(firewall.risk_level.value, "⚪")
