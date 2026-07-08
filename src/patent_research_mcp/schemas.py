@@ -27,7 +27,7 @@ class Problem(BaseModel):
 
     business_problem: str
     technical_problem: str
-    why_it_matters_for_enterprise_360: str
+    why_it_matters: str = ""
 
 
 class Architecture(BaseModel):
@@ -40,8 +40,8 @@ class Architecture(BaseModel):
     interfaces: list[str] = Field(default_factory=list)
 
 
-class Enterprise360(BaseModel):
-    """Enterprise OS 360 ontology elements extracted."""
+class EnterpriseOntology(BaseModel):
+    """Enterprise ontology elements extracted from a patent."""
 
     entities: list[str] = Field(default_factory=list)
     relations: list[str] = Field(default_factory=list)
@@ -75,7 +75,7 @@ class ArchitectureCard(BaseModel):
     source_url: str | None = None
     problem: Problem
     architecture: Architecture
-    enterprise_360: Enterprise360
+    enterprise_ontology: EnterpriseOntology
     patterns: list[PatternInfo] = Field(default_factory=list)
     suggested_modules: list[str] = Field(default_factory=list)
     notes: str | None = None
@@ -170,7 +170,7 @@ class CompareResult(BaseModel):
     common_entities: list[str] = Field(default_factory=list)
     common_events: list[str] = Field(default_factory=list)
     common_workflows: list[str] = Field(default_factory=list)
-    suggested_suggested_modules: list[str] = Field(default_factory=list)
+    suggested_modules: list[str] = Field(default_factory=list)
     pattern_count: int = 0
 
 

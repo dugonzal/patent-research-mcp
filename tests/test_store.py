@@ -5,7 +5,7 @@ from patent_research_mcp.schemas import (
     Architecture,
     ArchitectureCard,
     ClaimsFirewall,
-    Enterprise360,
+    EnterpriseOntology,
     PatternCard,
     Problem,
 )
@@ -83,10 +83,10 @@ def test_architecture_card_storage(tmp_path):
             problem=Problem(
                 business_problem="BP",
                 technical_problem="TP",
-                why_it_matters_for_enterprise_360="WIM",
+                why_it_matters_for_enterprise_ontology="WIM",
             ),
             architecture=Architecture(),
-            enterprise_360=Enterprise360(),
+            enterprise_ontology=EnterpriseOntology(),
         )
         save_architecture_card(card)
         loaded = load_architecture_card("US1")

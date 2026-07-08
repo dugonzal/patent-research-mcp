@@ -9,7 +9,7 @@ from patent_research_mcp.schemas import (
     Architecture,
     ArchitectureCard,
     ClaimsFirewall,
-    Enterprise360,
+    EnterpriseOntology,
     PatternCard,
     PatternInfo,
     Problem,
@@ -25,10 +25,10 @@ class TestArchitectureCard:
             problem=Problem(
                 business_problem="Too many inboxes",
                 technical_problem="No unified task API",
-                why_it_matters_for_enterprise_360="Inbox consolidation pattern",
+                why_it_matters_for_enterprise_ontology="Inbox consolidation pattern",
             ),
             architecture=Architecture(),
-            enterprise_360=Enterprise360(),
+            enterprise_ontology=EnterpriseOntology(),
         )
         assert card.publication_number == "US7979296B2"
 
@@ -40,13 +40,13 @@ class TestArchitectureCard:
             problem=Problem(
                 business_problem="X",
                 technical_problem="Y",
-                why_it_matters_for_enterprise_360="Z",
+                why_it_matters_for_enterprise_ontology="Z",
             ),
             architecture=Architecture(
                 components=["Worklist Engine"],
                 actors=["User"],
             ),
-            enterprise_360=Enterprise360(entities=["WorkItem"]),
+            enterprise_ontology=EnterpriseOntology(entities=["WorkItem"]),
             patterns=[
                 PatternInfo(
                     name="Unified Inbox",

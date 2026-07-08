@@ -17,11 +17,15 @@ from .schemas import ArchitectureCard, ClaimsFirewall, PatternCard
 
 
 def _home() -> Path:
-    """Resolve the data home directory."""
-    env = os.environ.get("PATENT_RESEARCH_HOME")
+    """Resolve the data home directory.
+
+    Uses PATENT_RESEARCH_DATA env var if set, otherwise defaults to
+    $CWD/data (data/ subdirectory of the current working directory).
+    """
+    env = os.environ.get("PATENT_RESEARCH_DATA")
     if env:
         return Path(env)
-    return Path.home() / "Proyectos" / "patent-research-mcp" / "data"
+    return Path.cwd() / "data"
 
 
 def _ensure_dir(subdir: str) -> Path:

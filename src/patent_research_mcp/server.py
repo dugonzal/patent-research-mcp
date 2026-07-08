@@ -27,7 +27,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .exporter import generate_module_proposal, generate_research_summary_markdown
-from .patents import extract_sections, fetch_patent
+from .patents import get_sections as extract_sections, fetch_patent
 from .schemas import (
     ArchitectureCard,
     ClaimsFirewall,
@@ -76,7 +76,7 @@ def patent_seed_list() -> str:
     """List all seed patents with metadata.
 
     Returns a JSON array of seed patents including publication_number,
-    title, domain, why_it_matters_for_nexo, and google_patents_url.
+    title, domain, why_it_matters, and google_patents_url.
     Use this first to discover which patents are available for research.
     """
     seeds = get_seed_patents()
@@ -141,7 +141,7 @@ def architecture_card_save(card_json: str) -> str:
     """Save an ArchitectureCard after Hermes extracts it from a patent.
 
     The ArchitectureCard captures: problem (business + technical),
-    architecture components/actors/data_stores, enterprise_360 ontology
+    architecture components/actors/data_stores, ontology
     (entities, events, states, workflows, rules, permissions), patterns,
     and suggested enterprise architecture modules.
 
@@ -289,7 +289,7 @@ def pattern_compare(pattern_names: str | None = None) -> str:
         common_entities=find_shared_concepts(all_entities),
         common_events=find_shared_concepts(all_events),
         common_workflows=find_shared_concepts(all_workflows),
-        suggested_suggested_modules=list(set(p.suggested_module for p in selected)),
+        suggested_modules=list(set(p.suggested_module for p in selected)),
         pattern_count=len(selected),
     )
 

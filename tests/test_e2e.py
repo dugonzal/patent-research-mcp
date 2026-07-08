@@ -15,7 +15,7 @@ from patent_research_mcp.schemas import (
     Architecture,
     ArchitectureCard,
     ClaimsFirewall,
-    Enterprise360,
+    EnterpriseOntology,
     PatternCard,
     Problem,
 )
@@ -68,10 +68,10 @@ async def test_03_architecture_card():
         problem=Problem(
             business_problem="State machines need flexibility",
             technical_problem="Configurable transitions per project",
-            why_it_matters_for_enterprise_360="Exception Console needs state machines",
+            why_it_matters_for_enterprise_ontology="Exception Console needs state machines",
         ),
         architecture=Architecture(components=["Engine"], actors=["User"]),
-        enterprise_360=Enterprise360(
+        enterprise_ontology=EnterpriseOntology(
             entities=["Issue", "IssueType"],
             events=["issue_created"],
             states=["open → closed"],
