@@ -59,6 +59,7 @@ def get_seed_patents():
                 print(f"Warning: plugin seeds failed: {e}")
     return _get_core_seeds()
 
+
 # ── MCP Server ────────────────────────────────────────────────────────
 
 mcp = FastMCP(
@@ -140,9 +141,7 @@ def patent_get_sections(publication_number: str) -> str:
     """
     sections = extract_sections(publication_number)
     if sections is None:
-        return json.dumps(
-            {"error": f"Patent {publication_number} not found. Fetch it first with patent_fetch."}
-        )
+        return json.dumps({"error": f"Patent {publication_number} not found. Fetch it first with patent_fetch."})
     # Save
     save_sections(publication_number, {k: v for k, v in sections.model_dump().items() if v is not None})
     return json.dumps(sections.model_dump(), indent=2, ensure_ascii=False, default=str)

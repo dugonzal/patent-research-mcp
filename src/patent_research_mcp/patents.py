@@ -16,10 +16,7 @@ from .schemas import FetchResult, PatentSections
 from .store import _home, load_raw_html, load_raw_text, save_raw_html, save_raw_text
 
 GOOGLE_PATENTS_BASE = "https://patents.google.com/patent"
-USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-)
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
 
 async def fetch_patent(
@@ -118,8 +115,8 @@ async def fetch_patent(
         text_path=_save_path(pub_num, "txt"),
         title=title,
         status="fetched",
-            pdf_path=pdf_result_path,
-        )
+        pdf_path=pdf_result_path,
+    )
 
 
 async def get_sections(publication_number: str) -> PatentSections:
@@ -249,7 +246,7 @@ def _extract_section_text(sel: Selector, section_type: str) -> str:
         for selector in [
             'section[itemprop="abstract"] div[itemprop="content"]',
             'section[itemprop="abstract"]',
-            'div.abstract',
+            "div.abstract",
             'meta[name="DC.description"]::attr(content)',
         ]:
             text = sel.css(selector).get("")
@@ -264,7 +261,7 @@ def _extract_section_text(sel: Selector, section_type: str) -> str:
         for selector in [
             'section[itemprop="claims"] div[itemprop="content"]',
             'section[itemprop="claims"]',
-            'div.claims',
+            "div.claims",
         ]:
             texts = sel.css(f"{selector} ::text").getall()
             if texts:
@@ -274,7 +271,7 @@ def _extract_section_text(sel: Selector, section_type: str) -> str:
         for selector in [
             'section[itemprop="description"] div[itemprop="content"]',
             'section[itemprop="description"]',
-            'div.description',
+            "div.description",
         ]:
             texts = sel.css(f"{selector} ::text").getall()
             if texts:
@@ -283,7 +280,7 @@ def _extract_section_text(sel: Selector, section_type: str) -> str:
     elif section_type == "background":
         for selector in [
             'section[itemprop="background"]',
-            'section.background',
+            "section.background",
         ]:
             texts = sel.css(f"{selector} ::text").getall()
             if texts:

@@ -55,12 +55,14 @@ async def generate_research_summary_markdown() -> str:
         lines.append("")
 
     # Patterns section
-    lines.extend([
-        "---",
-        "",
-        "## Patterns Found",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "## Patterns Found",
+            "",
+        ]
+    )
     patterns = list_patterns()
     if patterns:
         for p in patterns:
@@ -79,12 +81,14 @@ async def generate_research_summary_markdown() -> str:
         lines.append("")
 
     # Safe Abstractions section
-    lines.extend([
-        "---",
-        "",
-        "## Safe Abstractions (ClaimsFirewall Summary)",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "## Safe Abstractions (ClaimsFirewall Summary)",
+            "",
+        ]
+    )
     abstractions_found = False
     for rf in raw_files:
         pub_num = rf.stem
@@ -101,12 +105,14 @@ async def generate_research_summary_markdown() -> str:
         lines.append("")
 
     # Suggested modules section
-    lines.extend([
-        "---",
-        "",
-        "## Suggested Modules",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "## Suggested Modules",
+            "",
+        ]
+    )
     all_modules: set[str] = set()
     for rf in raw_files:
         card = load_architecture_card(rf.stem)
@@ -119,12 +125,14 @@ async def generate_research_summary_markdown() -> str:
         lines.append("*No modules proposed yet.*")
     lines.append("")
 
-    lines.extend([
-        "---",
-        "",
-        "*End of research summary. Update by running `research_export_markdown` after processing new patents.*",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "*End of research summary. Update by running `research_export_markdown` after processing new patents.*",
+            "",
+        ]
+    )
 
     md = "\n".join(lines)
     save_export("research_summary.md", md)
@@ -171,85 +179,101 @@ async def generate_module_proposal(module_name: str) -> str:
     for e in proposal.entities:
         lines.append(f"- `{e}`")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## State Machine",
-        "",
-        "| State | Description |",
-        "|-------|-------------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## State Machine",
+            "",
+            "| State | Description |",
+            "|-------|-------------|",
+        ]
+    )
     for s in proposal.states:
         lines.append(f"| `{s}` | |")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Events",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Events",
+            "",
+        ]
+    )
     for e in proposal.events:
         lines.append(f"- `{e}`")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Workflows",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Workflows",
+            "",
+        ]
+    )
     for w in proposal.workflows:
         lines.append(f"1. **{w}**")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Business Rules",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Business Rules",
+            "",
+        ]
+    )
     for r in proposal.rules:
         lines.append(f"- {r}")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Permissions",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Permissions",
+            "",
+        ]
+    )
     for p in proposal.permissions:
         lines.append(f"- {p}")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Integrations",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Integrations",
+            "",
+        ]
+    )
     for i in proposal.integrations:
         lines.append(f"- {i}")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Audit Trail",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Audit Trail",
+            "",
+        ]
+    )
     for a in proposal.audit:
         lines.append(f"- {a}")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Inspiration from Patents",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Inspiration from Patents",
+            "",
+        ]
+    )
     if proposal.inspired_by:
         for name in proposal.inspired_by:
             lines.append(f"- *{name}* — See pattern card for safe abstractions.")

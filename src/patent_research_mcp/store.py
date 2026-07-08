@@ -122,9 +122,7 @@ def load_architecture_card(pub_num: str) -> ArchitectureCard | None:
 
 
 def save_claims_firewall(firewall: ClaimsFirewall) -> str:
-    return _write_json(
-        "claims", f"{firewall.publication_number}.claims_firewall.json", firewall.model_dump()
-    )
+    return _write_json("claims", f"{firewall.publication_number}.claims_firewall.json", firewall.model_dump())
 
 
 def load_claims_firewall(pub_num: str) -> ClaimsFirewall | None:
