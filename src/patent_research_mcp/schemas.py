@@ -1,4 +1,4 @@
-"""Pydantic schemas for Nexo Research MCP.
+"""Pydantic schemas for Patent Research MCP.
 
 ArchitectureCard, ClaimsFirewall, PatternCard, and supporting types
 for enterprise architecture research and patent analysis.
@@ -88,7 +88,7 @@ class ClaimsFirewall(BaseModel):
     """Firewall analysis of patent claims.
 
     Separates protectable claims from safe abstractions,
-    providing design-around guidance for Nexo Enterprise OS 360.
+    providing design-around guidance for enterprise architecture research.
     """
 
     publication_number: str
@@ -170,12 +170,12 @@ class CompareResult(BaseModel):
     common_entities: list[str] = Field(default_factory=list)
     common_events: list[str] = Field(default_factory=list)
     common_workflows: list[str] = Field(default_factory=list)
-    suggested_nexo_modules: list[str] = Field(default_factory=list)
+    suggested_suggested_modules: list[str] = Field(default_factory=list)
     pattern_count: int = 0
 
 
 class ModuleProposal(BaseModel):
-    """A proposed Nexo Enterprise OS 360 module."""
+    """A proposed enterprise architecture module."""
 
     module_name: str
     purpose: str

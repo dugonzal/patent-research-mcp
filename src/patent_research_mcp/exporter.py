@@ -1,4 +1,4 @@
-"""Markdown export utilities for Nexo Research MCP."""
+"""Markdown export utilities for Patent Research MCP."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from .store import (
 async def generate_research_summary_markdown() -> str:
     """Generate a comprehensive Markdown summary of all research."""
     lines: list[str] = [
-        "# Nexo Enterprise OS 360 — Research Summary",
+        "# enterprise architecture — Research Summary",
         "",
         f"*Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}*",
         "",
@@ -46,12 +46,12 @@ async def generate_research_summary_markdown() -> str:
         if card:
             lines.append(f"- **Domain:** {card.domain}")
             lines.append(f"- **Assignee:** {card.assignee or 'Unknown'}")
-            lines.append(f"- **Nexo Modules:** {', '.join(card.suggested_modules) if card.suggested_modules else '—'}")
+            lines.append(f"- **Suggested Modules:** {', '.join(card.nexo_modules) if card.nexo_modules else '—'}")
         if firewall:
             levels = {"low": "🟢", "medium": "🟡", "high": "🔴"}
             risk_icon = levels.get(firewall.risk_level.value, "⚪")
             lines.append(f"- **Claims Risk:** {risk_icon} {firewall.risk_level.value}")
-            lines.append(f"- **Nexo Direction:** {firewall.original_direction}")
+            lines.append(f"- **Original Direction:** {firewall.nexo_original_direction}")
         lines.append("")
 
     # Patterns section
@@ -71,7 +71,7 @@ async def generate_research_summary_markdown() -> str:
             lines.append(f"- **Domain:** {p.domain}")
             lines.append(f"- **Description:** {p.description}")
             lines.append(f"- **Reusable Principle:** {p.reusable_principle}")
-            lines.append(f"- **Nexo Module:** {p.suggested_module}")
+            lines.append(f"- **Suggested Module:** {p.nexo_module}")
             lines.append(f"- **Source Patents:** {', '.join(p.source_patents)}")
             lines.append("")
     else:
@@ -102,14 +102,14 @@ async def generate_research_summary_markdown() -> str:
     lines.extend([
         "---",
         "",
-        "## Suggested Nexo Modules",
+        "## Suggested Suggested Modules",
         "",
     ])
     all_modules: set[str] = set()
     for rf in raw_files:
         card = load_architecture_card(rf.stem)
         if card:
-            all_modules.update(card.suggested_modules)
+            all_modules.update(card.nexo_modules)
     if all_modules:
         for mod in sorted(all_modules):
             lines.append(f"- `{mod}`")
@@ -125,14 +125,14 @@ async def generate_research_summary_markdown() -> str:
     ])
 
     md = "\n".join(lines)
-    save_export("nexo_research_summary.md", md)
+    save_export("research_summary.md", md)
     return md
 
 
 async def generate_module_proposal(module_name: str) -> str:
     """Generate a module proposal template for a Nexo module."""
     patterns = list_patterns()
-    relevant_patterns = [p for p in patterns if p.suggested_module == module_name]
+    relevant_patterns = [p for p in patterns if p.nexo_module == module_name]
 
     proposal = ModuleProposal(
         module_name=module_name,
@@ -152,7 +152,7 @@ async def generate_module_proposal(module_name: str) -> str:
     lines = [
         f"# Module: {module_name}",
         "",
-        "> Proposed for Nexo Enterprise OS 360",
+        "> Proposed for enterprise architecture",
         f"> *Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}*",
         "",
         "---",

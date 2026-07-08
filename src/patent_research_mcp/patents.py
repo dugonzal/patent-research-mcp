@@ -1,4 +1,4 @@
-"""Patent fetching and section extraction for Nexo Research MCP.
+"""Patent fetching and section extraction for Patent Research MCP.
 
 Downloads patents from Google Patents, extracts structured sections,
 and normalizes text for further analysis.

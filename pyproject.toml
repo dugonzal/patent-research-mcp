@@ -3,7 +3,7 @@ name = "patent-research-mcp"
 version = "0.1.0"
 description = "MCP server for patent research and enterprise architecture pattern extraction"
 requires-python = ">=3.11"
-authors = [{ name = "Nexo OS" }]
+authors = [{ name = "the target system" }]
 
 dependencies = [
     "mcp>=1.0.0",

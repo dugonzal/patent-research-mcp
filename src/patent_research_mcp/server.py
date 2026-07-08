@@ -1,4 +1,4 @@
-"""MCP Server for Nexo Research.
+"""MCP Server for Patent Research.
 
 Exposes tools for patent research, architecture extraction, claims analysis,
 pattern synthesis, and module proposal generation.
@@ -45,7 +45,7 @@ from .store import (
 
 mcp = FastMCP(
     "patent-research-mcp",
-    instructions="Patent research and architecture pattern extraction for Nexo Enterprise OS 360",
+    instructions="Patent research and architecture pattern extraction for enterprise architecture research",
 )
 
 console = Console()
@@ -126,7 +126,7 @@ def architecture_card_save(card_json: str) -> str:
     The ArchitectureCard captures: problem (business + technical),
     architecture components/actors/data_stores, enterprise_360 ontology
     (entities, events, states, workflows, rules, permissions), patterns,
-    and suggested Nexo modules.
+    and suggested enterprise architecture modules.
 
     Args:
         card_json: JSON string conforming to the ArchitectureCard schema.
@@ -153,12 +153,12 @@ def claims_firewall_save(firewall_json: str) -> str:
 
     The ClaimsFirewall separates dangerous-to-copy patent claims from
     safe abstractions, provides design-around ideas, and suggests
-    Nexo's original direction. Always create this BEFORE writing any
+    system original direction. Always create this BEFORE writing any
     implementation inspired by a patent.
 
     Args:
         firewall_json: JSON string conforming to the ClaimsFirewall schema.
-            Must include publication_number, nexo_original_direction, and risk_level.
+            Must include publication_number, original_direction, and risk_level.
     """
     try:
         data = json.loads(firewall_json)
@@ -185,7 +185,7 @@ def pattern_save(pattern_json: str) -> str:
 
     A PatternCard captures a pattern that appears across multiple patents:
     core entities, events, states, workflows, and a reusable principle
-    that Nexo can implement without copying claims.
+    that enterprise architecture can implement without copying claims.
 
     Args:
         pattern_json: JSON string conforming to the PatternCard schema.
@@ -222,7 +222,7 @@ def pattern_list() -> str:
                 "domain": p.domain,
                 "description": p.description,
                 "reusable_principle": p.reusable_principle,
-                "nexo_module": p.nexo_module,
+                "suggested_module": p.suggested_module,
                 "risk_level": p.risk_level.value,
                 "source_patents": p.source_patents,
             }
@@ -241,7 +241,7 @@ def pattern_compare(pattern_names: str | None = None) -> str:
     """Compare multiple architectural patterns to find shared concepts.
 
     Analyzes core_entities, core_events, and core_workflows across
-    patterns to find common ground and suggest Nexo modules.
+    patterns to find common ground and suggest enterprise architecture modules.
 
     Args:
         pattern_names: Optional comma-separated list of pattern slugs to compare.
@@ -272,7 +272,7 @@ def pattern_compare(pattern_names: str | None = None) -> str:
         common_entities=find_shared_concepts(all_entities),
         common_events=find_shared_concepts(all_events),
         common_workflows=find_shared_concepts(all_workflows),
-        suggested_nexo_modules=list(set(p.nexo_module for p in selected)),
+        suggested_suggested_modules=list(set(p.suggested_module for p in selected)),
         pattern_count=len(selected),
     )
 
@@ -287,20 +287,20 @@ async def research_export_markdown() -> str:
     """Generate a complete Markdown research summary.
 
     Reads all stored ArchitectureCards, ClaimsFirewalls, and PatternCards
-    and produces a comprehensive export at data/exports/nexo_research_summary.md.
+    and produces a comprehensive export at data/exports/research_summary.md.
     Includes patents processed, patterns found, safe abstractions,
-    and suggested Nexo modules.
+    and suggested enterprise architecture modules.
     """
     md = await generate_research_summary_markdown()
     return json.dumps({"status": "exported", "path": md})
 
 
-# ── Tool: nexo_module_proposal ─────────────────────────────────────────
+# ── Tool: suggested_module_proposal ─────────────────────────────────────────
 
 
 @mcp.tool()
-async def nexo_module_proposal(module_name: str) -> str:
-    """Generate a module proposal template for a Nexo Enterprise OS 360 module.
+async def suggested_module_proposal(module_name: str) -> str:
+    """Generate a module proposal template for a enterprise architecture module.
 
     Creates a Markdown template at data/exports/{module_name}.module.md
     with purpose, entities, state machine, events, workflows, rules,
@@ -317,7 +317,7 @@ async def nexo_module_proposal(module_name: str) -> str:
 
 cli_app = typer.Typer(
     name="patent-research",
-    help="Patent research and architecture analysis for Nexo Enterprise OS 360",
+    help="Patent research and architecture analysis for enterprise architecture research",
 )
 
 
@@ -397,7 +397,7 @@ def patterns():
     for p in all_patterns:
         level = p.risk_level.value
         risk_icon = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(level, "⚪")
-        table.add_row(p.slug, p.name[:50], p.domain, f"{risk_icon} {level}", p.nexo_module)
+        table.add_row(p.slug, p.name[:50], p.domain, f"{risk_icon} {level}", p.suggested_module)
     console.print(table)
 
 

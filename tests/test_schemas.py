@@ -52,7 +52,7 @@ class TestArchitectureCard:
                     name="Unified Inbox",
                     abstract_form="Aggregate tasks from multiple sources",
                     reusable_principle="Single inbox pattern",
-                    adaptation="Nexo Exception Console",
+                    adaptation="the Exception Console",
                     risk_level="low",
                 )
             ],
@@ -103,7 +103,7 @@ class TestClaimsFirewall:
             dangerous_to_copy=["The specific polling mechanism"],
             safe_abstractions=["Unified worklist concept"],
             design_around_ideas=["Use webhooks instead of polling"],
-            original_direction="Nexo Exception Console with push-based updates",
+            original_direction="the Exception Console with push-based updates",
             risk_level="medium",
             notes="Good prior art reference",
         )
