@@ -41,6 +41,7 @@ quote-style = "double"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = ["e2e: tests requiring Playwright browsers + internet"]
 
 [build-system]
 requires = ["setuptools>=75.0"]

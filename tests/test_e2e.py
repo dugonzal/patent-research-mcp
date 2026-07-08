@@ -1,6 +1,7 @@
 """E2E test: complete patent research pipeline.
 
 Tests: fetch → sections → card → firewall → pattern → export → verify.
+Requires Playwright browsers and internet access.
 """
 
 import asyncio
@@ -38,6 +39,7 @@ def event_loop():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_01_fetch():
     """Fetch a patent via Playwright."""
     r = await fetch_patent(PUB, pdf=False)
@@ -48,6 +50,7 @@ async def test_01_fetch():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_02_sections():
     """Extract sections from fetched patent."""
     sec = await get_sections(PUB)
@@ -57,6 +60,7 @@ async def test_02_sections():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_03_architecture_card():
     """Save and validate ArchitectureCard."""
     card = ArchitectureCard(
@@ -85,6 +89,7 @@ async def test_03_architecture_card():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_04_claims_firewall():
     """Save and validate ClaimsFirewall."""
     fw = ClaimsFirewall(
@@ -101,6 +106,7 @@ async def test_04_claims_firewall():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_05_pattern():
     """Save and list patterns."""
     p = PatternCard(
@@ -124,6 +130,7 @@ async def test_05_pattern():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_06_export():
     """Generate research export."""
     md = await generate_research_summary_markdown()
@@ -131,6 +138,7 @@ async def test_06_export():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 async def test_07_e2e_cleanup():
     """Verify all artifacts exist."""
     from patent_research_mcp.store import _home

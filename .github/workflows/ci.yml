@@ -32,8 +32,8 @@ jobs:
       - name: Format check with ruff
         run: ruff format --check src/
 
-      - name: Test with pytest
-        run: python -m pytest -v --tb=short
+      - name: Test with pytest (unit only)
+        run: python -m pytest -v --tb=short -m "not e2e"
 
       - name: Type check with mypy (optional)
         continue-on-error: true
