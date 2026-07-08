@@ -17,10 +17,10 @@ pip install -e ".[dev]"
 patent-research seeds
 
 # Fetch a patent (with optional PDF)
-patent-research fetch US7979296B2 --pdf
+patent-research fetch US0000000A0 --pdf
 
 # Extract sections
-patent-research sections US7979296B2
+patent-research sections US0000000A0
 
 # List saved patterns
 patent-research patterns
@@ -68,7 +68,7 @@ Reusable architectural pattern:
 
 | Command | Description |
 |---------|-------------|
-| `patent-research seeds` | List 8 seed patents for research |
+| `patent-research seeds` (empty by default) | List 8 seed patents for research |
 | `patent-research fetch <num>` | Download patent HTML + TXT (+ PDF with --pdf) |
 | `patent-research sections <num>` | Extract structured sections |
 | `patent-research patterns` | List saved patterns |

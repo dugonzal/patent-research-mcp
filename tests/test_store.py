@@ -36,11 +36,11 @@ def test_raw_html_text(tmp_path):
     store._home = lambda: tmp_path / "data"
 
     try:
-        save_raw_html("US7979296B2", "<html>test</html>")
-        save_raw_text("US7979296B2", "Test patent text")
+        save_raw_html("US0000000A0", "<html>test</html>")
+        save_raw_text("US0000000A0", "Test patent text")
 
-        assert raw_exists("US7979296B2")
-        assert load_raw_text("US7979296B2") == "Test patent text"
+        assert raw_exists("US0000000A0")
+        assert load_raw_text("US0000000A0") == "Test patent text"
     finally:
         store._home = original_home
 

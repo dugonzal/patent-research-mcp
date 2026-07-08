@@ -1,0 +1,1 @@
+{"name":"example-research-plugin","version":"0.1.0","description":"Example plugin for patent-research-mcp","author":"Your Name","license":"MIT","provides":{"seeds":"patents.json","prompts":"prompts/"}}
