@@ -148,6 +148,8 @@ class PatentSections(BaseModel):
     assignee: str | None = None
     inventors: list[str] = Field(default_factory=list)
     publication_date: str | None = None
+    filing_date: str | None = None
+    status: str = "extracted"
     source_url: str | None = None
 
 

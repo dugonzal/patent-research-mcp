@@ -127,7 +127,7 @@ async def patent_fetch(
 
 
 @mcp.tool()
-def patent_get_sections(publication_number: str) -> str:
+async def patent_get_sections(publication_number: str) -> str:
     """Extract structured sections from a previously fetched patent.
 
     Reads the saved HTML/text and extracts: title, abstract, background,
@@ -139,10 +139,10 @@ def patent_get_sections(publication_number: str) -> str:
     Args:
         publication_number: The patent number (e.g. US7979296B2)
     """
-    sections = extract_sections(publication_number)
+    sections = await extract_sections(publication_number)
     if sections is None:
         return json.dumps({"error": f"Patent {publication_number} not found. Fetch it first with patent_fetch."})
-    # Save
+    # Save — convert Pydantic model to dict for storage
     save_sections(publication_number, {k: v for k, v in sections.model_dump().items() if v is not None})
     return json.dumps(sections.model_dump(), indent=2, ensure_ascii=False, default=str)
 
@@ -395,7 +395,9 @@ def sections(
     pub_num: str = typer.Argument(..., help="Patent publication number"),
 ):
     """Extract sections from a fetched patent."""
-    result = extract_sections(pub_num)
+    import asyncio
+
+    result = asyncio.run(extract_sections(pub_num))
     if result is None:
         console.print(f"[red]✗[/red] Patent {pub_num} not found. Fetch it first.")
         raise typer.Exit(1)

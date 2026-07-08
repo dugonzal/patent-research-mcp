@@ -39,7 +39,7 @@ async def generate_research_summary_markdown() -> str:
         card = load_architecture_card(pub_num)
         firewall = load_claims_firewall(pub_num)
 
-        title = sections.title if sections and sections.title else "(title unknown)"
+        title = sections.get("title", "") if sections else "(title unknown)"
         lines.append(f"### {pub_num}: {title}")
         lines.append("")
         if card:

@@ -96,7 +96,10 @@ def load_raw_text(pub_num: str) -> str | None:
 # ── Sections storage ──────────────────────────────────────────────────
 
 
-def save_sections(pub_num: str, data: dict[str, Any]) -> str:
+def save_sections(pub_num: str, data: dict[str, Any] | Any) -> str:
+    """Save structured sections. Accepts dict or Pydantic model."""
+    if hasattr(data, "model_dump"):
+        data = data.model_dump()
     return _write_json("sections", f"{pub_num}.sections.json", data)
 
 
