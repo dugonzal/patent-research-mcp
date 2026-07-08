@@ -32,7 +32,26 @@ from .schemas import (
     CompareResult,
     PatternCard,
 )
-from .seed import get_seed_patents
+import os
+from pathlib import Path
+
+from .seed import get_seed_patents as _get_core_seeds
+from .schemas import SeedPatent
+
+
+def get_seed_patents():
+    """Load seed patents, checking RESEARCH_PLUGIN env var first."""
+    plugin_path = os.environ.get("RESEARCH_PLUGIN")
+    if plugin_path:
+        pf = Path(plugin_path) / "patents.json"
+        if pf.exists():
+            try:
+                import json
+                data = json.loads(pf.read_text())
+                return [SeedPatent(**s) for s in data]
+            except Exception as e:
+                print(f"Warning: plugin seeds failed: {e}")
+    return _get_core_seeds()
 from .store import (
     list_patterns,
     save_architecture_card,
