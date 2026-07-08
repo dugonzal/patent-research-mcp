@@ -36,3 +36,4 @@ data/graph/*
 # Environment
 .env
 .env.local
+plugins/nexo/
