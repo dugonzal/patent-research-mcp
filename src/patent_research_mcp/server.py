@@ -29,6 +29,7 @@ from rich.table import Table
 from .exporter import generate_module_proposal, generate_research_summary_markdown
 from .patents import fetch_patent
 from .patents import get_sections as extract_sections
+from .prompts import ALL_PROMPTS as CORE_PROMPTS
 from .schemas import (
     ArchitectureCard,
     ClaimsFirewall,
@@ -37,7 +38,6 @@ from .schemas import (
     SeedPatent,
 )
 from .seed import get_seed_patents as _get_core_seeds
-from .prompts import ALL_PROMPTS as CORE_PROMPTS
 from .store import (
     list_patterns,
     save_architecture_card,
