@@ -194,6 +194,22 @@ Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/).
 
 ---
 
+## Wiki
+
+Extended documentation is available in [`docs/wiki/`](docs/wiki/):
+
+| Page | Description |
+|------|-------------|
+| [Home](docs/wiki/Home.md) | Overview and quick links |
+| [Quick Start](docs/wiki/Quick-Start.md) | Setup in 2 minutes |
+| [MCP Tools Reference](docs/wiki/MCP-Tools-Reference.md) | All 11 tools |
+| [CLI Reference](docs/wiki/CLI-Reference.md) | Command-line usage |
+| [Plugin System](docs/wiki/Plugin-System.md) | How plugins work |
+| [Plugin Development](docs/wiki/Plugin-Development.md) | Build your own |
+| [Architecture](docs/wiki/Architecture.md) | System design |
+
+---
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, conventions, and PR process.
