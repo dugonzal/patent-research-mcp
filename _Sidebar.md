@@ -1,7 +1,0 @@
-- [[Home]]
-- [[Quick-Start]]
-- [[MCP-Tools-Reference]]
-- [[CLI-Reference]]
-- [[Plugin-System]]
-- [[Plugin-Development]]
-- [[Architecture]]
