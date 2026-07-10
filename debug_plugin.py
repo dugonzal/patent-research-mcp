@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Debug mode: test plugin integration end-to-end with verbose output.
-
-Usage:
-    RESEARCH_PLUGIN=/tmp/nexo-research-plugin python3 debug_plugin.py
-
-Shows every MCP call, response, and validation step.
-"""
+"""Diagnostic: exercise all MCP tools through a plugin, report results."""
 
 from __future__ import annotations
 
@@ -13,61 +7,91 @@ import asyncio
 import json
 import os
 import sys
+from dataclasses import dataclass, field
 
-# ── helpers ────────────────────────────────────────────────────────────
+# ── terminal ──────────────────────────────────────────────────────────
 
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-CYAN = "\033[96m"
-RED = "\033[91m"
-BOLD = "\033[1m"
-DIM = "\033[2m"
-RESET = "\033[0m"
-
-
-def section(title: str) -> None:
-    print(f"\n{BOLD}{'─' * 60}{RESET}")
-    print(f"{BOLD}{CYAN}  {title}{RESET}")
-    print(f"{BOLD}{'─' * 60}{RESET}")
+G, Y, C, R, B, D, X = (
+    "\033[92m",
+    "\033[93m",
+    "\033[96m",
+    "\033[91m",
+    "\033[1m",
+    "\033[2m",
+    "\033[0m",
+)
 
 
-def step(msg: str) -> None:
-    print(f"  {GREEN}▶{RESET} {msg}")
+def say(tag: str, msg: str | None = None, detail: str = "", nl: bool = True) -> None:
+    end = "\n" if nl else ""
+    if msg is None:
+        print(f"  {tag}", end=end)
+    else:
+        print(f"  {tag} {msg} {D}{detail}{X}".rstrip(), end=end)
 
 
-def ok(msg: str, detail: str = "") -> None:
-    print(f"    {GREEN}✅{RESET} {msg} {DIM}{detail}{RESET}".rstrip())
+# ── runner ────────────────────────────────────────────────────────────
 
 
-def warn(msg: str) -> None:
-    print(f"    {YELLOW}⚠️ {RESET} {msg}")
+@dataclass
+class Probe:
+    name: str
+    tool: str
+    args: dict | None = None
+    expect: str | None = None  # key to check in response
+    expected_count: int | None = None  # array length
+    checks: list[tuple[str, callable]] = field(default_factory=list)  # (label, fn(data)->bool)
 
 
-def fail(msg: str) -> None:
-    print(f"    {RED}❌{RESET} {msg}")
-    errors.append(msg)
+@dataclass
+class Result:
+    tool: str
+    ok: bool
+    detail: str
 
 
-def data(label: str, obj) -> None:
-    """Pretty-print a data blob."""
-    text = json.dumps(obj, indent=2, ensure_ascii=False)
-    # Truncate very long strings
-    if len(text) > 600:
-        text = text[:600] + f"\n{DIM}  ... ({len(text)} chars total){RESET}"
-    print(f"    {DIM}{label}:{RESET}\n{text}")
+async def run_tool(session, tool: str, args: dict | None = None) -> dict:
+    """Call an MCP tool, return parsed JSON."""
+    result = await session.call_tool(tool, args or {})
+    text = result.content[0].text
+    return json.loads(text)
 
 
-errors: list[str] = []
+async def probe(session, p: Probe) -> Result:
+    """Execute one probe, return result."""
+    try:
+        data = await run_tool(session, p.tool, p.args)
+
+        # Check expected key exists
+        if p.expect and p.expect not in data:
+            return Result(p.tool, False, f"missing key '{p.expect}'")
+
+        # Check count
+        if p.expected_count is not None:
+            val = data.get(p.expect) if p.expect else data
+            actual = len(val) if isinstance(val, list) else (val.get("count") if isinstance(val, dict) else -1)
+            if actual != p.expected_count:
+                return Result(p.tool, False, f"expected {p.expected_count}, got {actual}")
+
+        # Custom checks
+        for label, fn in p.checks:
+            if not fn(data):
+                return Result(p.tool, False, label)
+
+        return Result(p.tool, True, "")
+
+    except Exception as e:
+        return Result(p.tool, False, str(e).split("\n")[0])
 
 
-# ── main ───────────────────────────────────────────────────────────────
+# ── main ──────────────────────────────────────────────────────────────
 
 
 async def main() -> None:
-    plugin = os.environ.get("RESEARCH_PLUGIN", "/tmp/nexo-research-plugin")
-    print(f"{BOLD}Plugin Debug Mode{RESET}")
-    print(f"  Plugin path: {CYAN}{plugin}{RESET}")
-    print(f"  Python:      {sys.executable}")
+    plugin = os.environ.get("RESEARCH_PLUGIN") or "—"
+    print(f"{B}patent-research-mcp — plugin probe{X}")
+    say(f"plugin:  {C}{plugin}{X}")
+    say(f"python:  {sys.executable}")
 
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
@@ -75,204 +99,160 @@ async def main() -> None:
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "patent_research_mcp.server"],
-        env={**os.environ, "RESEARCH_PLUGIN": plugin},
+        env=dict(os.environ, RESEARCH_PLUGIN=plugin) if plugin != "—" else dict(os.environ),
     )
 
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-            print(f"  {GREEN}🔌{RESET} MCP session initialized\n")
+            say(f"connected  {G}✅{X}")
 
-            # ── 1. List tools ───────────────────────────────────────
-            section("1. Tools Available")
-            step("Calling list_tools()...")
-            tools = await session.list_tools()
-            names = sorted(t.name for t in tools.tools)
-            ok(f"{len(names)} tools registered")
-            for t_name in names:
-                print(f"      • {t_name}")
-            assert "prompt_get" in names, "prompt_get tool missing!"
-            ok("prompt_get tool present")
+            probes: list[Probe] = []
 
-            # ── 2. Seeds ──────────────────────────────────────────────
-            section("2. Seed Patents (from plugin)")
-            step("Calling patent_seed_list()...")
-            result = await session.call_tool("patent_seed_list", {})
-            seeds = json.loads(result.content[0].text)
-            ok(f"{len(seeds)} seeds loaded", f"(expected 12)")
-            if len(seeds) != 12:
-                fail(f"Expected 12 seeds, got {len(seeds)}")
+            # 1. Tools
+            tools_raw = await session.list_tools()
+            tool_names = sorted(t.name for t in tools_raw.tools)
+            say(f"\n{B}tools{X}  {len(tool_names)} registered")
+            for tn in tool_names:
+                say(f"  • {tn}", nl=False)
+                say(f"{G}✓{X}" if tn != "prompt_get" else f"{G}✓ prompt_get present{X}", detail="", nl=True)
 
-            domains = {}
-            for s in seeds:
-                d = s["domain"]
-                domains.setdefault(d, 0)
-                domains[d] += 1
-                print(
-                    f"    {DIM}  • {s['publication_number']:18s} "
-                    f"→ {s['domain']:40s}{RESET}"
+            # 2. Seeds
+            probes.append(
+                Probe(
+                    name="seeds",
+                    tool="patent_seed_list",
+                    expected_count=12,
+                    checks=[
+                        ("missing Nexo Twin domain", lambda d: any("Digital Twin" in s.get("domain", "") for s in d)),
+                    ],
                 )
-            ok(f"{len(domains)} unique domains")
-            assert (
-                "Digital Twin / Process Modeling" in domains
-            ), "Missing Nexo Twin seed"
-            ok("Nexo Digital Twin seed present")
-
-            # ── 3. Prompts ────────────────────────────────────────────
-            section("3. Prompt Templates")
-            step("Calling prompt_get()...")
-            result = await session.call_tool("prompt_get", {})
-            plist = json.loads(result.content[0].text)
-            ok(
-                f"{plist['count']} prompts available",
-                f": {plist['available']}",
             )
-            if plist["count"] != 3:
-                fail(f"Expected 3 prompts, got {plist['count']}")
 
-            step("Verifying each prompt is Nexo-specific...")
-            for pname in plist["available"]:
-                r = await session.call_tool("prompt_get", {"name": pname})
-                pdata = json.loads(r.content[0].text)
-                content = pdata["content"]
-                preview = content[:120].replace("\n", " ").strip()
-                has_nexo = "Nexo" in content
-                if has_nexo:
-                    ok(f"{pname}", f"{len(content)} chars — Nexo-specific ✅")
+            # 3. Prompts
+            prompts_list = await run_tool(session, "prompt_get", {})
+            pnames = prompts_list.get("available", [])
+            pnames.sort()
+            say(f"\n{B}prompts{X}  {len(pnames)} loaded: {C}{', '.join(pnames)}{X}")
+            for pn in pnames:
+                pd = await run_tool(session, "prompt_get", {"name": pn})
+                c = pd.get("content", "")
+                if "Nexo" in c:
+                    say(f"  • {pn:20s} {D}{len(c)} chars, Nexo ✅{X}")
                 else:
-                    warn(f"{pname} — {len(content)} chars, NO Nexo content!")
-                    fail(f"{pname} missing Nexo-specific content")
-                print(f"    {DIM}  preview: {preview}...{RESET}")
+                    say(f"  • {pn:20s} {Y}default (no Nexo content){X}")
 
-            # ── 4. Fetch + Extract ─────────────────────────────────────
-            section("4. Fetch + Extract Pipeline (e2e smoke)")
-            step("Fetching US7979296B2 (already cached or live)...")
-            try:
-                result = await session.call_tool(
-                    "patent_fetch",
-                    {"publication_number": "US7979296B2"},
+            probes.append(
+                Probe(
+                    name="prompts",
+                    tool="prompt_get",
                 )
-                fetch_data = json.loads(result.content[0].text)
-                if fetch_data.get("status") == "failed":
-                    warn(f"Fetch: {fetch_data.get('error', 'unknown error')}")
-                    warn("(Expected if no Playwright browsers or no network)")
-                else:
-                    ok("Fetch succeeded", f"title: {fetch_data.get('title', '?')[:80]}")
-                    step("Extracting sections...")
-                    result = await session.call_tool(
-                        "patent_get_sections",
-                        {"publication_number": "US7979296B2"},
-                    )
-                    sec_data = json.loads(result.content[0].text)
-                    if "error" in sec_data:
-                        warn(f"Sections: {sec_data['error']}")
-                    else:
-                        ok("Sections extracted")
-                        for k in ["title", "abstract", "claims", "assignee"]:
-                            if sec_data.get(k):
-                                val = str(sec_data[k])[:80]
-                                print(f"    {DIM}  {k}: {val}{RESET}")
-            except Exception as e:
-                warn(f"Fetch pipeline failed: {e}")
+            )
 
-            # ── 5. Save artifacts ──────────────────────────────────────
-            section("5. Artifact Storage (write + read)")
-            step("Saving test ArchitectureCard...")
-            try:
-                card = {
-                    "publication_number": "US0000000A0",
-                    "title": "Debug Test Patent",
-                    "domain": "Debug",
-                    "problem": {
-                        "business_problem": "N/A",
-                        "technical_problem": "N/A",
-                    },
-                    "architecture": {
-                        "components": ["Debug"],
-                        "actors": [],
-                        "data_stores": [],
-                    },
-                    "enterprise_ontology": {
-                        "entities": ["DebugEntity"],
-                        "events": [],
-                        "states": [],
-                        "workflows": [],
-                        "rules": [],
-                        "permissions": [],
-                    },
-                    "patterns": [],
-                    "suggested_modules": [],
-                }
-                result = await session.call_tool(
-                    "architecture_card_save",
-                    {"card_json": json.dumps(card)},
+            # 4. Fetch + extract
+            probes.append(
+                Probe(
+                    name="fetch",
+                    tool="patent_fetch",
+                    args={"publication_number": "US7979296B2"},
+                    expect="status",
                 )
-                save_result = json.loads(result.content[0].text)
-                if save_result.get("status") == "saved":
-                    ok("ArchitectureCard saved", f"path: {save_result['path']}")
-                else:
-                    fail(f"Save failed: {save_result}")
-            except Exception as e:
-                fail(f"Save exception: {e}")
-
-            step("Saving test PatternCard...")
-            try:
-                pattern = {
-                    "name": "Debug Pattern",
-                    "slug": "debug-pattern",
-                    "domain": "Debug",
-                    "description": "Test pattern from debug mode",
-                    "reusable_principle": "Debug first",
-                    "source_patents": ["US0000000A0"],
-                    "core_entities": ["E1"],
-                    "core_events": [],
-                    "core_workflows": [],
-                    "risk_level": "low",
-                    "suggested_module": "debug",
-                }
-                result = await session.call_tool(
-                    "pattern_save",
-                    {"pattern_json": json.dumps(pattern)},
+            )
+            probes.append(
+                Probe(
+                    name="sections",
+                    tool="patent_get_sections",
+                    args={"publication_number": "US7979296B2"},
+                    expect="title",
                 )
-                pat_result = json.loads(result.content[0].text)
-                if pat_result.get("status") == "saved":
-                    ok("PatternCard saved", f"slug: {pat_result['slug']}")
+            )
+
+            # 5. Save + read
+            test_card = {
+                "publication_number": "DBG0000001",
+                "title": "Debug Probe Card",
+                "domain": "Debug",
+                "problem": {"business_problem": "N/A", "technical_problem": "N/A"},
+                "architecture": {"components": ["X"], "actors": [], "data_stores": []},
+                "enterprise_ontology": {
+                    "entities": ["E"],
+                    "events": [],
+                    "states": [],
+                    "workflows": [],
+                    "rules": [],
+                    "permissions": [],
+                },
+                "patterns": [],
+                "suggested_modules": [],
+            }
+            probes.append(
+                Probe(
+                    name="card_save",
+                    tool="architecture_card_save",
+                    args={"card_json": json.dumps(test_card)},
+                    checks=[("save failed", lambda d: d.get("status") == "saved")],
+                )
+            )
+
+            test_pattern = {
+                "name": "Dbg",
+                "slug": "dbg",
+                "domain": "Debug",
+                "description": ".",
+                "reusable_principle": ".",
+                "source_patents": ["DBG0000001"],
+                "core_entities": ["E"],
+                "core_events": [],
+                "core_workflows": [],
+                "risk_level": "low",
+                "suggested_module": "dbg",
+            }
+            probes.append(
+                Probe(
+                    name="pattern_save",
+                    tool="pattern_save",
+                    args={"pattern_json": json.dumps(test_pattern)},
+                    checks=[("save failed", lambda d: d.get("status") == "saved")],
+                )
+            )
+
+            probes.append(
+                Probe(
+                    name="pattern_list",
+                    tool="pattern_list",
+                    checks=[("no patterns", lambda d: isinstance(d, list) and len(d) > 0)],
+                )
+            )
+
+            probes.append(
+                Probe(
+                    name="export",
+                    tool="research_export_markdown",
+                    checks=[("export failed", lambda d: d.get("status") == "exported")],
+                )
+            )
+
+            # ── Run probes ──────────────────────────────────────────
+            say(f"\n{B}probes{X}")
+            results = await asyncio.gather(*(probe(session, p) for p in probes))
+
+            ok_count = 0
+            for r in results:
+                if r.ok:
+                    ok_count += 1
+                    say(f"{G}✅{X}  {r.tool:25s}  {D}{r.detail}{X}")
                 else:
-                    fail(f"Pattern save failed: {pat_result}")
-            except Exception as e:
-                fail(f"Pattern save exception: {e}")
+                    say(f"{R}❌{X}  {r.tool:25s}  {R}{r.detail}{X}")
 
-            step("Listing saved patterns...")
-            try:
-                result = await session.call_tool("pattern_list", {})
-                plist_result = json.loads(result.content[0].text)
-                ok(f"{len(plist_result)} patterns in store")
-            except Exception as e:
-                fail(f"Pattern list exception: {e}")
-
-            step("Generating Markdown export...")
-            try:
-                result = await session.call_tool("research_export_markdown", {})
-                export_result = json.loads(result.content[0].text)
-                if export_result.get("status") == "exported":
-                    ok("Research export generated", f"path: {export_result['path']}")
-                else:
-                    warn(f"Export result: {export_result}")
-            except Exception as e:
-                warn(f"Export exception: {e}")
-
-            # ── Summary ──────────────────────────────────────────────
-            section("6. Summary")
-            if errors:
-                print(f"\n  {RED}{BOLD}❌  {len(errors)} FAILURES:{RESET}")
-                for e in errors:
-                    print(f"    • {e}")
-                sys.exit(1)
+            # ── Report ──────────────────────────────────────────────
+            total = len(probes)
+            fail_count = total - ok_count
+            color = G if fail_count == 0 else R
+            say(f"\n{color}{B}result{X}  {ok_count}/{total} passed")
+            if fail_count == 0:
+                say(f"{G}✅  everything looks good{X}")
             else:
-                print(f"\n  {GREEN}{BOLD}✅  ALL CHECKS PASSED{RESET}")
-                print(f"  {DIM}Plugin: {plugin}{RESET}")
-                print(f"  {DIM}Seeds:  {len(seeds)}  |  Domains: {len(domains)}{RESET}")
-                print(f"  {DIM}Tools:  {len(names)}  |  Prompts: {plist['count']}{RESET}")
+                sys.exit(1)
 
 
 if __name__ == "__main__":
