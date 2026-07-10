@@ -151,7 +151,7 @@ class TestSeedPatents:
         from patent_research_mcp.seed import get_seed_patents
 
         seeds = get_seed_patents()
-        assert len(seeds) == 0 # No seed patents shipped by default
+        assert len(seeds) == 0  # No seed patents shipped by default
         for s in seeds:
             assert s.publication_number
             assert s.title

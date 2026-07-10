@@ -169,14 +169,11 @@ def test_01_extraction():
 
 def test_02_fallback_extraction():
     """When HTML structure changes (CSS classes renamed), probe recovers."""
-    mutated_html = PATENT_HTML_FIXTURE.replace(
-        'itemprop="abstract"', 'data-section="abs"'
-    ).replace(
-        'itemprop="claims"', 'data-section="clm"'
-    ).replace(
-        'itemprop="description"', 'data-section="desc"'
-    ).replace(
-        'itemprop="background"', 'data-section="bg"'
+    mutated_html = (
+        PATENT_HTML_FIXTURE.replace('itemprop="abstract"', 'data-section="abs"')
+        .replace('itemprop="claims"', 'data-section="clm"')
+        .replace('itemprop="description"', 'data-section="desc"')
+        .replace('itemprop="background"', 'data-section="bg"')
     )
 
     cfg = SOURCES["google_patents"]

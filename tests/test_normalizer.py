@@ -1,6 +1,5 @@
 """Tests for text normalizer."""
 
-
 from patent_research_mcp.normalizer import (
     clean_whitespace,
     find_shared_concepts,

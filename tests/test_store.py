@@ -1,6 +1,5 @@
 """Tests for JSON file storage."""
 
-
 from patent_research_mcp.schemas import (
     Architecture,
     ArchitectureCard,
