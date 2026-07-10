@@ -68,20 +68,20 @@ SOURCES: dict[str, SourceConfig] = {
         "rate_limit": {"delay_seconds": 2.0, "max_retries": 3, "backoff_base": 2.0},
         "selectors": {
             "abstract": [
+                "div.abstract",
                 'section[itemprop="abstract"] div[itemprop="content"]',
                 'section[itemprop="abstract"]',
-                "div.abstract",
                 'meta[name="DC.description"]::attr(content)',
             ],
             "claims": [
+                "div.claims",
                 'section[itemprop="claims"] div[itemprop="content"]',
                 'section[itemprop="claims"]',
-                "div.claims",
             ],
             "description": [
+                "div.description",
                 'section[itemprop="description"] div[itemprop="content"]',
                 'section[itemprop="description"]',
-                "div.description",
             ],
             "background": [
                 'section[itemprop="background"]',
@@ -89,8 +89,8 @@ SOURCES: dict[str, SourceConfig] = {
             ],
         },
         "title_selectors": [
-            'meta[property="og:title"]::attr(content)',
             "h1::text",
+            'meta[property="og:title"]::attr(content)',
             "title::text",
         ],
         "pdf_urls": [
