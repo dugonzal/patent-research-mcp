@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from parsel import Selector
 
 if TYPE_CHECKING:
-    from .registry import SourceConfig
+    from .registry import SourceConfig  # noqa: F401
 
 # Keywords that identify patent sections in heading text
 SECTION_SIGNALS: dict[str, list[str]] = {
@@ -90,13 +90,15 @@ class SelectorProbe:
                     text = " ".join(el.css("::text").getall()).strip()
                     if len(text) > 50:
                         confidence = _score_selector(el, section, text)
-                        candidates.append(ProbeCandidate(
-                            selector=selector,
-                            confidence=confidence,
-                            match_type="structural",
-                            text=text[:5000],
-                            score_reason=f"pattern matched + text length {len(text)}",
-                        ))
+                        candidates.append(
+                            ProbeCandidate(
+                                selector=selector,
+                                confidence=confidence,
+                                match_type="structural",
+                                text=text[:5000],
+                                score_reason=f"pattern matched + text length {len(text)}",
+                            )
+                        )
 
         # Strategy 2: semantic — find headings matching section keywords
         keywords = SECTION_SIGNALS.get(section, [section])
@@ -114,13 +116,15 @@ class SelectorProbe:
                             if selector and selector not in seen:
                                 seen.add(selector)
                                 confidence = min(0.6 + _score_selector(content, section, section_text), 1.0)
-                                candidates.append(ProbeCandidate(
-                                    selector=selector,
-                                    confidence=confidence,
-                                    match_type="semantic",
-                                    text=section_text[:5000],
-                                    score_reason=f"heading '{text[:40]}' + following-sibling text",
-                                ))
+                                candidates.append(
+                                    ProbeCandidate(
+                                        selector=selector,
+                                        confidence=confidence,
+                                        match_type="semantic",
+                                        text=section_text[:5000],
+                                        score_reason=f"heading '{text[:40]}' + following-sibling text",
+                                    )
+                                )
                                 continue
 
                     # Fallback: walk up 1 level to parent
@@ -132,13 +136,15 @@ class SelectorProbe:
                             seen.add(selector)
                             section_text = " ".join(parent.css("::text").getall()).strip()
                             confidence = _score_semantic(text, section) + 0.2
-                            candidates.append(ProbeCandidate(
-                                selector=selector,
-                                confidence=min(confidence, 0.7),
-                                match_type="semantic",
-                                text=section_text[:5000],
-                                score_reason=f"heading '{text[:40]}' + parent container",
-                            ))
+                            candidates.append(
+                                ProbeCandidate(
+                                    selector=selector,
+                                    confidence=min(confidence, 0.7),
+                                    match_type="semantic",
+                                    text=section_text[:5000],
+                                    score_reason=f"heading '{text[:40]}' + parent container",
+                                )
+                            )
 
         # Strategy 3: text density — look for large text blocks near section
         large_blocks = self.sel.css("div, section, article")
@@ -152,13 +158,15 @@ class SelectorProbe:
                     selector = _element_css_path(el)
                     if selector and selector not in seen:
                         seen.add(selector)
-                        candidates.append(ProbeCandidate(
-                            selector=selector,
-                            confidence=0.3,
-                            match_type="id",
-                            text=text[:5000],
-                            score_reason=f"id/class contains keyword: {combined[:40]}",
-                        ))
+                        candidates.append(
+                            ProbeCandidate(
+                                selector=selector,
+                                confidence=0.3,
+                                match_type="id",
+                                text=text[:5000],
+                                score_reason=f"id/class contains keyword: {combined[:40]}",
+                            )
+                        )
 
         report.candidates = sorted(candidates, key=lambda c: c.confidence, reverse=True)
         report.found = len(report.candidates) > 0

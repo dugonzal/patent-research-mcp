@@ -47,7 +47,9 @@ class ExtractionReport:
         return [a.selector for a in self.attempts if not a.success]
 
     def summary(self) -> str:
-        lines = [f"Extraction report: {sum(1 for a in self.attempts if a.success)}/{len(self.attempts)} selectors succeeded"]
+        lines = [
+            f"Extraction report: {sum(1 for a in self.attempts if a.success)}/{len(self.attempts)} selectors succeeded"  # noqa: E501
+        ]
         for a in self.attempts:
             lines.append(f"  {a}")
         return "\n".join(lines)
@@ -91,7 +93,8 @@ class PatentExtractor:
             logger.critical(
                 "Fallback rate %.0f%% exceeds threshold %.0f%% for source '%s' — "
                 "DOM may have changed, update registry.py manually",
-                self.fallback_rate * 100, self.FALLBACK_THRESHOLD * 100,
+                self.fallback_rate * 100,
+                self.FALLBACK_THRESHOLD * 100,
                 self.source.get("label", "unknown"),
             )
 
@@ -155,16 +158,19 @@ class PatentExtractor:
 
         # ── Fallback: probe DOM when all registered selectors fail ──
         self._fallback_calls += 1
-        logger.info("All %d selectors failed for '%s' — probing DOM (fallback rate %.0f%%)",
-                     len(selectors), section, self.fallback_rate * 100)
+        logger.info(
+            "All %d selectors failed for '%s' — probing DOM (fallback rate %.0f%%)",
+            len(selectors),
+            section,
+            self.fallback_rate * 100,
+        )
         self._check_fallback_rate()
         from .probe import SelectorProbe  # lazy import to avoid circular dep at module level
 
         probe = SelectorProbe(sel)
         report = probe.probe_section(section)
         if best := report.best():
-            logger.info("Probe found candidate for '%s': %s (confidence %.2f)",
-                        section, best.selector, best.confidence)
+            logger.info("Probe found candidate for '%s': %s (confidence %.2f)", section, best.selector, best.confidence)
             if best.text:
                 self._report.log(section, f"[probe] {best.selector}", True, best.text[:80])
                 return best.text

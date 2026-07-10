@@ -40,3 +40,9 @@ jobs:
         run: |
           pip install mypy
           mypy src/ --ignore-missing-imports
+
+      - name: Coverage report
+        continue-on-error: true
+        run: |
+          pip install pytest-cov
+          python -m pytest --cov=patent_research_mcp --cov-report=term-missing -m "not e2e"

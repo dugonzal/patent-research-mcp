@@ -11,6 +11,7 @@ from typing import Literal, NotRequired, TypedDict
 
 class SelectorSet(TypedDict, total=False):
     """Ordered list of CSS selectors for each section, tried in sequence."""
+
     abstract: list[str]
     claims: list[str]
     description: list[str]
@@ -19,6 +20,7 @@ class SelectorSet(TypedDict, total=False):
 
 class RateLimitConfig(TypedDict, total=False):
     """Rate limiting and anti-bot strategy for a source."""
+
     delay_seconds: float  # wait between requests
     max_retries: int
     backoff_base: float  # exponential backoff multiplier
@@ -28,18 +30,21 @@ class RateLimitConfig(TypedDict, total=False):
 
 class NavigationStep(TypedDict):
     """A single navigation action to access content."""
+
     action: Literal["click", "wait", "scroll", "select"]
     target: str  # CSS selector or text to find
 
 
 class NavigationConfig(TypedDict, total=False):
     """Navigation flow for sources with multi-step content access."""
+
     steps: list[NavigationStep]
     wait_after: float  # seconds to wait after nav completes
 
 
 class SourceConfig(TypedDict):
     """Configuration for a patent source."""
+
     label: str
     base_url: str
     selectors: NotRequired[SelectorSet]
@@ -60,7 +65,9 @@ SOURCES: dict[str, SourceConfig] = {
         "label": "Google Patents",
         "base_url": "https://patents.google.com/patent",
         "lang": "en",
-        "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "user_agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        ),
         "fetch_timeout": 30000,
         "viewport": {"width": 1280, "height": 800},
         "wait_until": "load",

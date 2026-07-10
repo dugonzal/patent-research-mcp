@@ -40,3 +40,4 @@ plugins/nexo/
 
 # OMH workflow state
 .omh/
+.coverage

@@ -1,6 +1,9 @@
 # patent-research-mcp
 
-**Python 3.11+** • **MIT License** • **MCP Server** • **Ruff**
+**Python 3.11+** • **MIT License** • **MCP Server** • **Ruff** • **47 tests**
+
+[![CI](https://github.com/dugonzal/patent-research-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/dugonzal/patent-research-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.1-blue)](https://pypi.org/project/patent-research-mcp/)
 
 **A generic MCP server for patent research, architecture extraction, claims analysis, and pattern synthesis.**
 
@@ -167,27 +170,66 @@ Example `patents.json`:
 ## Environment Variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+|---|---|
 | `PATENT_RESEARCH_DATA` | `$CWD/data` | Data storage directory |
 | `RESEARCH_PLUGIN` | — | Path to private plugin with custom seeds |
+
+---
+
+## Docker
+
+```bash
+docker build -t patent-research-mcp .
+docker run -v $(pwd)/data:/data -p 8000:8000 patent-research-mcp
+```
+
+The container includes Playwright with Chromium for Google Patents fetching.
+
+---
+
+## Architecture Decisions
+
+Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/).
+
+---
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, conventions, and PR process.
 
 ---
 
 ## Development
 
 ```bash
-# Install dev dependencies
-pip install -e ".[dev]"
+# Install with dev dependencies
+make install
 
-# Run tests
-pytest -v
+# Run tests (unit only)
+make test
 
-# Lint
-ruff check src/
-ruff format --check src/
+# Run all tests including e2e
+make test-all
 
-# Type check (optional)
-mypy src/
+# Run tests with coverage report
+make test-cov
+
+# Lint and format
+make lint
+make format
+
+# Type check
+make typecheck
+
+# Build the package
+make build
+```
+
+Pre-commit hooks (optional):
+
+```bash
+pip install pre-commit
+pre-commit install
 ```
 
 ### Project Structure
