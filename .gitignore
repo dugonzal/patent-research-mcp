@@ -37,3 +37,6 @@ data/graph/*
 .env
 .env.local
 plugins/nexo/
+
+# OMH workflow state
+.omh/

@@ -1,9 +1,6 @@
 # patent-research-mcp
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![MCP](https://img.shields.io/badge/MCP-server-purple)](https://modelcontextprotocol.io)
-[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000)](https://github.com/astral-sh/ruff)
+**Python 3.11+** • **MIT License** • **MCP Server** • **Ruff**
 
 **A generic MCP server for patent research, architecture extraction, claims analysis, and pattern synthesis.**
 
@@ -206,7 +203,6 @@ patent-research-mcp/
 │   ├── normalizer.py   — Text & synonym normalization
 │   ├── exporter.py     — Markdown report generation
 │   └── seed.py         — Default seed patent data
-├── prompts/            — LLM prompt templates for analysis
 ├── data/               — Patent artifacts (gitignored except examples)
 ├── tests/              — pytest suite
 └── pyproject.toml      — Build config
