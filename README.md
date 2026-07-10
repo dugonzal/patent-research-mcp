@@ -66,7 +66,7 @@ Run as a standard MCP server for use with any MCP client (Claude Desktop, Hermes
 python -m patent_research_mcp.server
 ```
 
-### Tools (10 total)
+### Tools (11 total)
 
 | Tool | Description |
 |------|-------------|
@@ -80,6 +80,7 @@ python -m patent_research_mcp.server
 | `pattern_compare` | Compare patterns across patents for shared concepts |
 | `research_export_markdown` | Generate a complete research summary |
 | `module_proposal` | Generate a module proposal template |
+| `prompt_get` | Get available prompt templates (core + plugin) |
 
 ### Example: Hermes config
 

@@ -37,6 +37,7 @@ from .schemas import (
     SeedPatent,
 )
 from .seed import get_seed_patents as _get_core_seeds
+from .prompts import ALL_PROMPTS as CORE_PROMPTS
 from .store import (
     list_patterns,
     save_architecture_card,
@@ -58,6 +59,26 @@ def get_seed_patents():
             except Exception as e:
                 print(f"Warning: plugin seeds failed: {e}")
     return _get_core_seeds()
+
+
+def get_plugin_prompts() -> dict[str, str]:
+    """Load Markdown prompts from the plugin's prompts/ directory (if any).
+
+    Merges plugin prompts over core prompts — plugin prompts win on name conflict.
+    """
+    prompts = dict(CORE_PROMPTS)
+    plugin_path = os.environ.get("RESEARCH_PLUGIN")
+    if plugin_path:
+        prompts_dir = Path(plugin_path) / "prompts"
+        if prompts_dir.is_dir():
+            for md_file in sorted(prompts_dir.glob("*.md")):
+                name = md_file.stem
+                content = md_file.read_text().strip()
+                prompts[name] = content
+    return prompts
+
+
+ALL_PROMPTS = get_plugin_prompts()
 
 
 # ── MCP Server ────────────────────────────────────────────────────────
@@ -342,6 +363,27 @@ async def suggested_module_proposal(module_name: str) -> str:
     """
     md = await generate_module_proposal(module_name)
     return json.dumps({"status": "created", "module": module_name, "path": md})
+
+
+@mcp.tool()
+def prompt_get(name: str | None = None) -> str:
+    """Get prompt templates available for the patent research pipeline.
+
+    Args:
+        name: Optional prompt name (extractor, claims_firewall, synthesizer,
+            or any custom prompt loaded from a plugin). Returns all if omitted.
+    """
+    if name:
+        if name not in ALL_PROMPTS:
+            return json.dumps({"error": f"Prompt '{name}' not found. Available: {list(ALL_PROMPTS.keys())}"})
+        return json.dumps({"name": name, "content": ALL_PROMPTS[name]}, indent=2)
+    return json.dumps(
+        {
+            "available": list(ALL_PROMPTS.keys()),
+            "count": len(ALL_PROMPTS),
+        },
+        indent=2,
+    )
 
 
 # ── CLI ────────────────────────────────────────────────────────────────
