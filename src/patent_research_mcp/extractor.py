@@ -60,15 +60,40 @@ class PatentExtractor:
         extractor = PatentExtractor(source_config)
         title = extractor.extract_title(sel)
         abstract = extractor.extract_section(sel, "abstract")
+
+    Tracks fallback rate: if SelectorProbe activates > FALLBACK_THRESHOLD
+    of total extractions, logs a critical warning — signals the source's
+    DOM has fundamentally changed.
     """
+
+    FALLBACK_THRESHOLD = 0.10  # warn if >10% of extractions fall back to probe
 
     def __init__(self, source: SourceConfig):
         self.source = source
         self._report = ExtractionReport()
+        self._total_calls = 0
+        self._fallback_calls = 0
 
     @property
     def report(self) -> ExtractionReport:
         return self._report
+
+    @property
+    def fallback_rate(self) -> float:
+        """Ratio of extractions that fell back to SelectorProbe (0.0–1.0)."""
+        if self._total_calls == 0:
+            return 0.0
+        return self._fallback_calls / self._total_calls
+
+    def _check_fallback_rate(self) -> None:
+        """Log critical warning if fallback rate exceeds threshold."""
+        if self._total_calls >= 5 and self.fallback_rate > self.FALLBACK_THRESHOLD:
+            logger.critical(
+                "Fallback rate %.0f%% exceeds threshold %.0f%% for source '%s' — "
+                "DOM may have changed, update registry.py manually",
+                self.fallback_rate * 100, self.FALLBACK_THRESHOLD * 100,
+                self.source.get("label", "unknown"),
+            )
 
     # ── Public API ────────────────────────────────────────────────────
 
@@ -103,6 +128,7 @@ class PatentExtractor:
             logger.warning("No selectors registered for section '%s'", section)
             return ""
 
+        self._total_calls += 1
         is_multi = section in ("claims", "description", "background")
 
         for css_path in selectors:
@@ -128,7 +154,10 @@ class PatentExtractor:
                 self._report.log(section, css_path, False, f"error: {e}")
 
         # ── Fallback: probe DOM when all registered selectors fail ──
-        logger.info("All %d selectors failed for '%s' — probing DOM", len(selectors), section)
+        self._fallback_calls += 1
+        logger.info("All %d selectors failed for '%s' — probing DOM (fallback rate %.0f%%)",
+                     len(selectors), section, self.fallback_rate * 100)
+        self._check_fallback_rate()
         from .probe import SelectorProbe  # lazy import to avoid circular dep at module level
 
         probe = SelectorProbe(sel)

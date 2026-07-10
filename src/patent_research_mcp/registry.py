@@ -17,6 +17,27 @@ class SelectorSet(TypedDict, total=False):
     background: list[str]
 
 
+class RateLimitConfig(TypedDict, total=False):
+    """Rate limiting and anti-bot strategy for a source."""
+    delay_seconds: float  # wait between requests
+    max_retries: int
+    backoff_base: float  # exponential backoff multiplier
+    proxy_rotation: NotRequired[bool]
+    user_agent_rotation: NotRequired[bool]
+
+
+class NavigationStep(TypedDict):
+    """A single navigation action to access content."""
+    action: Literal["click", "wait", "scroll", "select"]
+    target: str  # CSS selector or text to find
+
+
+class NavigationConfig(TypedDict, total=False):
+    """Navigation flow for sources with multi-step content access."""
+    steps: list[NavigationStep]
+    wait_after: float  # seconds to wait after nav completes
+
+
 class SourceConfig(TypedDict):
     """Configuration for a patent source."""
     label: str
@@ -30,6 +51,8 @@ class SourceConfig(TypedDict):
     viewport: NotRequired[dict[str, int]]  # {"width": N, "height": N}
     block_extensions: NotRequired[list[str]]  # resource types to block
     wait_until: NotRequired[Literal["commit", "domcontentloaded", "load", "networkidle"]]
+    rate_limit: NotRequired[RateLimitConfig]
+    navigation: NotRequired[NavigationConfig]
 
 
 SOURCES: dict[str, SourceConfig] = {
@@ -42,6 +65,7 @@ SOURCES: dict[str, SourceConfig] = {
         "viewport": {"width": 1280, "height": 800},
         "wait_until": "load",
         "block_extensions": ["png", "jpg", "jpeg", "gif", "svg", "ico", "woff", "woff2", "ttf", "eot", "mp4", "webm"],
+        "rate_limit": {"delay_seconds": 2.0, "max_retries": 3, "backoff_base": 2.0},
         "selectors": {
             "abstract": [
                 'section[itemprop="abstract"] div[itemprop="content"]',
