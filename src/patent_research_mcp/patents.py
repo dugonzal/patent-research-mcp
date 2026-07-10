@@ -1,22 +1,36 @@
 """Patent fetching and section extraction for Patent Research MCP.
 
 Downloads patents from Google Patents, extracts structured sections,
-and normalizes text for further analysis. Uses httpx + parsel for
-modern async HTTP and XPath/CSS-based parsing.
+and normalizes text for further analysis.
+Uses a registry-driven extractor for selector management.
+All configurable values flow from the source config in registry.py.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 
 from parsel import Selector
 from playwright.async_api import async_playwright
 
+from .extractor import PatentExtractor
+from .registry import get_source
 from .schemas import FetchResult, PatentSections
 from .store import _home, load_raw_html, load_raw_text, save_raw_html, save_raw_text
 
-GOOGLE_PATENTS_BASE = "https://patents.google.com/patent"
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+logger = logging.getLogger(__name__)
+
+# All configuration flows from registry — zero hardcoded values
+SOURCE = get_source("google_patents")
+_extractor: PatentExtractor | None = None
+
+
+def _get_extractor() -> PatentExtractor:
+    global _extractor
+    if _extractor is None:
+        _extractor = PatentExtractor(SOURCE)
+    return _extractor
 
 
 async def fetch_patent(
@@ -35,7 +49,8 @@ async def fetch_patent(
         pub_num = _extract_pub_number(url)
     elif publication_number:
         pub_num = publication_number.upper().strip()
-        url = f"{GOOGLE_PATENTS_BASE}/{pub_num}/en"
+        lang = SOURCE.get("lang", "en")
+        url = f"{SOURCE['base_url']}/{pub_num}/{lang}"
     else:
         return FetchResult(
             publication_number="unknown",
@@ -50,8 +65,8 @@ async def fetch_patent(
         pdf_result_path = None
         if pdf:
             pdf_result_path = await _fetch_pdf(pub_num)
-        title = _extract_title(Selector(text=existing[:5000]))
-        result = FetchResult(
+        title = _get_extractor().extract_title(Selector(text=existing[:5000]))
+        return FetchResult(
             publication_number=pub_num,
             html_path=str(pub_num),
             text_path=str(pub_num),
@@ -59,15 +74,21 @@ async def fetch_patent(
             status="already_exists",
             pdf_path=pdf_result_path,
         )
-        return result
 
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page(user_agent=USER_AGENT, viewport={"width": 1280, "height": 800})
-            # Block images, fonts, and media for faster patent page loading
-            await page.route("**/*.{png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,mp4,webm}", lambda route: route.abort())
-            await page.goto(url, wait_until="load", timeout=30000)
+            user_agent = SOURCE.get("user_agent", "")
+            viewport = SOURCE.get("viewport", {"width": 1280, "height": 800})
+            page = await browser.new_page(user_agent=user_agent, viewport=viewport)
+            # Block images, fonts, and media for faster page loading
+            extensions = SOURCE.get("block_extensions", [])
+            if extensions:
+                pattern = f"**/*.{{{','.join(extensions)}}}"
+                await page.route(pattern, lambda route: route.abort())
+            timeout = SOURCE.get("fetch_timeout", 30000)
+            wait_until = SOURCE.get("wait_until", "load")
+            await page.goto(url, wait_until=wait_until, timeout=timeout)
             html = await page.content()
             await browser.close()
     except Exception as e:
@@ -94,9 +115,10 @@ async def fetch_patent(
     if body:
         text_parts.append(body.xpath("normalize-space(//body//text())").get(""))
 
-    # Also extract sections more carefully
+    # Extract sections via registry-driven extractor
+    extractor = _get_extractor()
     for section_type in ["abstract", "claims", "description", "background"]:
-        section_text = _extract_section_text(sel, section_type)
+        section_text = extractor.extract_section(sel, section_type)
         if section_text:
             text_parts.append(f"\n\n=== {section_type.upper()} ===\n\n{section_text}")
 
@@ -108,7 +130,8 @@ async def fetch_patent(
     if pdf:
         pdf_result_path = await _fetch_pdf(pub_num)
 
-    title = _extract_title(sel)
+    title = extractor.extract_title(sel)
+    logger.debug("Extraction report:\n%s", extractor.report.summary())
     return FetchResult(
         publication_number=pub_num,
         html_path=_save_path(pub_num, "html"),
@@ -140,54 +163,42 @@ async def get_sections(publication_number: str) -> PatentSections:
         )
 
     sel = Selector(text=html)
+    extractor = _get_extractor()
 
-    # Title
-    title = _extract_title(sel)
+    # ── Title ──
+    title = extractor.extract_title(sel)
 
-    # Abstract — meta tag or section
-    abstract = ""
-    abs_meta = sel.css('meta[name="description"]::attr(content)').get("")
-    if abs_meta:
-        abstract = abs_meta.strip()
-    else:
-        abstract = _extract_section_text(sel, "abstract")
+    # ── Abstract — meta tag or section ──
+    abstract = extractor.extract_meta(sel, "description")  # meta[name="description"]
+    if not abstract:
+        abstract = extractor.extract_section(sel, "abstract")
 
-    # Claims
-    claims = _extract_section_text(sel, "claims") or _extract_claims_from_text(pub_num)
+    # ── Claims ──
+    claims = extractor.extract_section(sel, "claims")
+    if not claims:
+        claims = _extract_claims_from_text(pub_num)
 
-    # Description
-    desc_text = _extract_section_text(sel, "description")
-    background = _extract_section_text(sel, "background")
+    # ── Description ──
+    desc_text = extractor.extract_section(sel, "description")
+    background = extractor.extract_section(sel, "background")
 
-    # Assignee
-    assignee = ""
-    assignee_meta = sel.css('meta[itemprop="assignee"]::attr(content)').get("")
-    if assignee_meta:
-        assignee = assignee_meta.strip()
+    # ── Assignee ──
+    assignee = extractor.extract_meta(sel, "assignee")
     if not assignee:
         assignee = _extract_by_regex(sel, r"Assignee:\s*(.+?)(?:\\n|$)")
     if not assignee:
         assignee = _extract_by_regex(sel, r"(?:Current )?Assignee[s]?:?\s*</strong>\s*(.+?)(?:<|\\n)")
 
-    # Inventors
-    inventors: list[str] = []
-    invs = sel.css('meta[itemprop="inventor"]::attr(content)').getall()
-    if invs:
-        inventors = [i.strip() for i in invs if i.strip()]
+    # ── Inventors ──
+    inventors = extractor.extract_meta_list(sel, "inventor")
     if not inventors:
         inv_text = _extract_by_regex(sel, r"Inventors?:\s*(.+?)(?:\\n|$)")
         if inv_text:
             inventors = [i.strip() for i in inv_text.split(";") if i.strip()]
 
-    # Dates
-    pub_date = ""
-    filing_date = ""
-    pub_date_meta = sel.css('meta[itemprop="publicationDate"]::attr(content)').get("")
-    if pub_date_meta:
-        pub_date = pub_date_meta.strip()
-    filing_date_meta = sel.css('meta[itemprop="filingDate"]::attr(content)').get("")
-    if filing_date_meta:
-        filing_date = filing_date_meta.strip()
+    # ── Dates ──
+    pub_date = extractor.extract_meta(sel, "publicationDate")
+    filing_date = extractor.extract_meta(sel, "filingDate")
 
     result = PatentSections(
         publication_number=pub_num,
@@ -208,85 +219,12 @@ async def get_sections(publication_number: str) -> PatentSections:
     from .store import save_sections
 
     save_sections(pub_num, result)
+    logger.debug("Extraction report:\n%s", extractor.report.summary())
 
     return result
 
 
 # ─── Internal helpers ───
-
-
-def _extract_title(sel: Selector) -> str:
-    """Extract patent title from parsed HTML."""
-    title = ""
-    # Try meta tag first
-    meta_title = sel.css('meta[property="og:title"]::attr(content)').get("")
-    if meta_title:
-        title = meta_title.strip()
-    # Try h1
-    if not title:
-        h1 = sel.css("h1::text").get("")
-        if h1:
-            title = h1.strip()
-    # Try title tag
-    if not title:
-        t = sel.css("title::text").get("")
-        if t:
-            # Remove site name suffix
-            title = re.sub(r"\s*[-–|]\s*Google\s+Patents.*$", "", t).strip()
-    # Clean
-    title = re.sub(r"\s+", " ", title).strip()
-    return title
-
-
-def _extract_section_text(sel: Selector, section_type: str) -> str:
-    """Extract a specific section (abstract, claims, description, background)."""
-    # Google Patents uses structured HTML sections
-    if section_type == "abstract":
-        # Multiple possible selectors
-        for selector in [
-            'section[itemprop="abstract"] div[itemprop="content"]',
-            'section[itemprop="abstract"]',
-            "div.abstract",
-            'meta[name="DC.description"]::attr(content)',
-        ]:
-            text = sel.css(selector).get("")
-            if text:
-                # Clean HTML tags
-                cleaner = Selector(text=text)
-                text = " ".join(cleaner.css("::text").getall()).strip()
-                if text:
-                    return text
-
-    elif section_type == "claims":
-        for selector in [
-            'section[itemprop="claims"] div[itemprop="content"]',
-            'section[itemprop="claims"]',
-            "div.claims",
-        ]:
-            texts = sel.css(f"{selector} ::text").getall()
-            if texts:
-                return "\n".join(t.strip() for t in texts if t.strip())
-
-    elif section_type == "description":
-        for selector in [
-            'section[itemprop="description"] div[itemprop="content"]',
-            'section[itemprop="description"]',
-            "div.description",
-        ]:
-            texts = sel.css(f"{selector} ::text").getall()
-            if texts:
-                return "\n".join(t.strip() for t in texts if t.strip())
-
-    elif section_type == "background":
-        for selector in [
-            'section[itemprop="background"]',
-            "section.background",
-        ]:
-            texts = sel.css(f"{selector} ::text").getall()
-            if texts:
-                return "\n".join(t.strip() for t in texts if t.strip())
-
-    return ""
 
 
 def _extract_by_regex(sel: Selector, pattern: str) -> str:
@@ -313,7 +251,6 @@ def _extract_claims_from_text(pub_num: str) -> str:
     text = load_raw_text(pub_num)
     if not text:
         return ""
-    # Look for claims section in text
     m = re.search(
         r"(?:CLAIMS|What is claimed is:|What we claim is:)(.*?)(?:\n\s*(?:DESCRIPTION|ABSTRACT|DRAWINGS|BACKGROUND))",
         text,
@@ -325,15 +262,12 @@ def _extract_claims_from_text(pub_num: str) -> str:
 
 
 async def _fetch_pdf(pub_num: str) -> str | None:
-    """Download PDF version of a patent, trying multiple sources."""
-    sources = [
-        f"https://patentimages.storage.googleapis.com/pdfs/{pub_num}.pdf",
-        f"https://patentimages.storage.googleapis.com/{pub_num}/{pub_num}.pdf",
-        f"https://patents.google.com/patent/{pub_num}/en?ogf=true",
-    ]
+    """Download PDF version of a patent, trying URLs from registry."""
+    pdf_urls = SOURCE.get("pdf_urls", [])
     pdf_path = _home() / "raw" / f"{pub_num}.pdf"
 
-    for source_url in sources:
+    for url_template in pdf_urls:
+        source_url = url_template.format(pub_num=pub_num)
         try:
             async with async_playwright() as p:
                 browser = await p.chromium.launch(headless=True)
@@ -347,22 +281,8 @@ async def _fetch_pdf(pub_num: str) -> str | None:
                         return str(pdf_path)
                 await browser.close()
         except Exception:
+            logger.debug("PDF download failed for %s", source_url, exc_info=True)
             continue
-
-    # Try USPTO as last resort
-    try:
-        uspto_url = f"https://pdfpiw.uspto.gov/{pub_num}.pdf"
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            resp = await page.goto(uspto_url, timeout=10000)
-            if resp and resp.status == 200 and len(await resp.body()) > 1000:
-                pdf_path.write_bytes(await resp.body())
-                await browser.close()
-                return str(pdf_path)
-            await browser.close()
-    except Exception:
-        pass
 
     return None
 
