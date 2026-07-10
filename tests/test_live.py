@@ -55,9 +55,9 @@ TEST_PATENTS = [
 @pytest.fixture(scope="session")
 def patent_htmls() -> dict[str, str]:
     """Download real patent HTMLs via Playwright (one per session)."""
-    from playwright.async_api import async_playwright
-
     import asyncio
+
+    from playwright.async_api import async_playwright
 
     results: dict[str, str] = {}
 
@@ -100,6 +100,7 @@ def patent_htmls() -> dict[str, str]:
 # ── Step 1: Real extraction ────────────────────────────────────────────
 
 
+@pytest.mark.e2e
 def test_01_real_extraction(patent_htmls: dict[str, str]):
     """Extract sections from real patent HTML — verify content quality."""
     cfg = SOURCES["google_patents"]
@@ -148,9 +149,7 @@ def test_01_real_extraction(patent_htmls: dict[str, str]):
             print(f"  [{pub}] Background: {len(background)} chars (standalone section)")
             # Cross-section: background shouldn't duplicate description
             short_bg = " ".join(background.split()[:20])
-            assert short_bg not in description, (
-                f"[{pub}] Background text appears verbatim in description"
-            )
+            assert short_bg not in description, f"[{pub}] Background text appears verbatim in description"
         else:
             print(f"  [{pub}] Background: not present as separate section (expected — often nested in description)")
 
@@ -189,6 +188,7 @@ def test_01_real_extraction(patent_htmls: dict[str, str]):
 # ── Step 2: Real synthesis pipeline ──────────────────────────────────
 
 
+@pytest.mark.e2e
 def test_02_real_synthesis(patent_htmls: dict[str, str]):
     """Generate ArchitectureCards from real extractions, validate coherence."""
     for patent in TEST_PATENTS:
@@ -264,6 +264,7 @@ def test_02_real_synthesis(patent_htmls: dict[str, str]):
 # ── Step 3: Cross-patent pattern synthesis ──────────────────────────
 
 
+@pytest.mark.e2e
 def test_03_cross_pattern_synthesis(patent_htmls: dict[str, str]):
     """Extract common patterns across multiple patents."""
     cfg = SOURCES["google_patents"]
@@ -288,7 +289,9 @@ def test_03_cross_pattern_synthesis(patent_htmls: dict[str, str]):
                 all_entities.add(e)
 
         # Extract action-like phrases
-        actions = re.findall(r"(?:method of|method for|step of|step for)\s+([a-z]+(?:ing|ed|ify|ize)\s+\w+)", claims[:500], re.I)
+        actions = re.findall(
+            r"(?:method of|method for|step of|step for)\s+([a-z]+(?:ing|ed|ify|ize)\s+\w+)", claims[:500], re.I
+        )
         for a in actions:
             all_actions.add(a.strip()[:60])
 
@@ -310,7 +313,9 @@ def test_03_cross_pattern_synthesis(patent_htmls: dict[str, str]):
             risk_level=RiskLevel.LOW,
         )
         save_pattern(pattern)
-        print(f"\n  Cross-pattern entities ({min(len(all_entities), 10)} shown): {', '.join(sorted(all_entities)[:10])}")
+        print(
+            f"\n  Cross-pattern entities ({min(len(all_entities), 10)} shown): {', '.join(sorted(all_entities)[:10])}"
+        )
         print(f"  Cross-pattern actions: {len(all_actions)} found")
 
     print("\n✅ All synthesis tests passed")
@@ -319,6 +324,7 @@ def test_03_cross_pattern_synthesis(patent_htmls: dict[str, str]):
 # ── Step 4: Compare section quality ──────────────────────────────────
 
 
+@pytest.mark.e2e
 def test_04_section_quality(patent_htmls: dict[str, str]):
     """Verify section quality metrics across all patents."""
     cfg = SOURCES["google_patents"]
@@ -354,7 +360,9 @@ def test_04_section_quality(patent_htmls: dict[str, str]):
         # Minimum quality thresholds
         assert metrics["abstract_words"] >= 10, f"[{pub}] Abstract too short ({metrics['abstract_words']} words)"
         assert metrics["claims_words"] >= 30, f"[{pub}] Claims too short ({metrics['claims_words']} words)"
-        assert metrics["description_words"] >= 50, f"[{pub}] Description too short ({metrics['description_words']} words)"
+        assert metrics["description_words"] >= 50, (
+            f"[{pub}] Description too short ({metrics['description_words']} words)"
+        )
         assert metrics["claims_count"] >= 1, f"[{pub}] No numbered claims found"
         assert metrics["abstract_has_period"], f"[{pub}] Abstract doesn't end with period (truncated?)"
         assert metrics["claims_have_numbers"], f"[{pub}] Claims don't start with numbers"
